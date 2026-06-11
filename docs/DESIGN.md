@@ -50,6 +50,30 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Stories, family, and the math gate (v6)
+
+- Correct word stress: phrases carry combining-acute marks (Ро́мчик,
+  По́їзд) so the TTS accents the right syllable; the on-screen bubble
+  strips the marks. A '{n}' slot in phrases is filled with a random
+  affectionate address (Ро́мчику, Рома́сику, Ро́мцю, со́нечко, чемпіо́не,
+  дру́же) for livelier speech.
+- Mission stories: each stage opens with a randomly picked one-line intro
+  (4 per vehicle, 40 total) told during the extended countdown — deliver
+  pies for grandma Galya, find Tyson's ball, return a lost star to the sky.
+  The celebration closes the same story with its payoff line.
+- New family: grandma Galya (big house, small dog Tyson) and grandma Anya
+  (apartment, glasses) appear in stories, in celebration line-ups (one
+  visits per celebration; Galya brings Tyson), and Tyson joins the bone
+  companion rotation alongside Sheila and Rey.
+- Math gate: after the tenth star, a tiny addition question (sums ≤ 5)
+  on the familiar digit balloons unlocks the celebration. Wrong answers
+  get a friendly correction and retry; an ignored question auto-passes
+  after ~28 s so the party is never blocked.
+- Baby Darynka is six months old: she sits on a blanket, waves her arms,
+  and wiggles instead of jumping.
+- Stage intros are ~3 s longer (story time), making each level last
+  noticeably longer together with the math gate.
+
 ## Voice and learning upgrades (v5)
 
 - Emotion presets for speech: praise and turbo are excited (higher pitch,

@@ -38,8 +38,8 @@
     border: 4px solid #ffb703;
     box-shadow: 0 6px 0 rgba(0,0,0,.15);
     transition: transform .25s cubic-bezier(.34,1.56,.64,1);
-    z-index: 15; pointer-events: none; white-space: nowrap;
-    max-width: 94vw; overflow: hidden; text-overflow: ellipsis;
+    z-index: 15; pointer-events: none;
+    white-space: normal; max-width: 88vw; text-align: center;
   }
   #bubble.show { transform: translateX(-50%) scale(1); }
 
@@ -94,21 +94,27 @@
  * ===================================================================== */
 
 /* ---- All user-facing strings (game is localized to Ukrainian) ---- */
+/* Phrases carry combining-acute stress marks (U+0301) so the TTS voice puts
+ * the accent on the right syllable (Ро́мчик, not РомчИк). The visible speech
+ * bubble strips them. '{n}' is replaced with a random affectionate address. */
 const UA = {
+  callNames: ['Ро́мчику', 'Рома́сику', 'Ро́мцю', 'со́нечко', 'чемпіо́не', 'дру́же'],
   greetings: [
-    'Привіт, Ромчику! Поїхали кататися!',
-    'Привіт, Ромчику! Машинки вже чекають на тебе!',
-    'Ромчику, вперед до пригод!',
+    'Привіт, Ро́мчику! Поїхали кататися!',
+    'Привіт, Ро́мчику! Машинки вже чекають на тебе!',
+    'Ро́мчику, вперед до пригод!',
+    'Сідай зручніше, {n}! Рушаємо!',
   ],
   praises: [
     'Молодець!', 'Супер!', 'Ура!', 'Так тримати!', 'Чудово!', 'Клас!',
-    'Молодець, Ромчику!', 'Ромчик — чемпіон!', 'Вау, Ромчику!',
+    'Молодець, {n}!', 'Ти справжній чемпіон!', 'Вау, {n}!',
     'Ти найкращий гонщик!', 'Браво!', 'Фантастика!',
-    'Оце так!', 'Неймовірно!', 'Ти зірка, Ромчику!', 'Як здорово!',
-    'Точно в ціль!', 'Ромчик усе може!', 'Краса!', 'Які ми молодці!',
+    'Оце так!', 'Неймовірно!', 'Ти зірка, {n}!', 'Як здорово!',
+    'Точно в ціль!', 'Ро́мчик усе може!', 'Краса!', 'Які ми молодці!',
+    'Гарно ловиш, {n}!', 'Просто супер!',
   ],
   combos: [
-    'Вау! Три підряд!', 'Супер швидко, Ромчику!', 'Як блискавка!',
+    'Вау! Три підряд!', 'Супер швидко, {n}!', 'Як блискавка!',
     'Оце так серія!', 'Раз, два, три — є!', 'Справжній майстер!',
   ],
   gift: ['Подарунок!', 'Сюрприз!', 'Ого, що там усередині?'],
@@ -116,39 +122,46 @@ const UA = {
   digits: ['один', 'два', 'три', 'чотири', "п'ять", 'шість', 'сім', 'вісім', "дев'ять"],
   huntPrompt: (w) => 'Знайди цифру ' + w + '!',
   huntBanner: (n) => 'Знайди цифру ' + n + '!',
-  huntRight: (w) => 'Так! Це ' + w + '! Молодець, Ромчику!',
+  huntRight: (w) => 'Так! Це ' + w + '! Молодець, {n}!',
   huntWrong: (k, w) => 'Це ' + k + '. А де ' + w + '?',
   colorPrompt: (acc) => 'Знайди ' + acc + ' кульку!',
-  colorRight: (name) => 'Так! Це ' + name + ' кулька! Молодець!',
+  colorRight: (name) => 'Так! Це ' + name + ' кулька! Молодець, {n}!',
   colorWrong: (name, acc) => 'Це ' + name + ' кулька. А де ' + acc + '?',
+  mathPrompt: (a, b) => 'Скільки буде ' + a + ' плюс ' + b + '?',
+  mathBanner: (a, b) => a + ' + ' + b + ' = ?',
+  mathRight: (a, b, s) => 'Так! ' + a + ' плюс ' + b + ' — буде ' + s + '! Розумничок!',
+  mathWrong: (k, a, b) => 'Це ' + k + '. А скільки буде ' + a + ' плюс ' + b + '?',
   countIntro: 'Порахуймо зірочки!',
   countDone: 'Десять зірочок!',
   celebrate: 'Молодець, Ромчику!',
   celebrateSay: [
-    'Молодець, Ромчику! Зібрав усі десять зірочок!',
-    'Ура! Мама, тато і Даринка радіють!',
+    'Молодець, {n}! Зібрав усі десять зірочок!',
+    'Ура! Мама, тато і маленька Дари́нка радіють!',
     'Шейла і Рей пишаються тобою!',
     'Десять зірочок! Ти чемпіон!',
     'Уся сімʼя плескає в долоні!',
-    'Ти справжній герой, Ромчику!',
+    'Ти справжній герой, {n}!',
     'Це було чудово!',
     'Перемога! Обіймашки від мами!',
+    'Бабу́ся Га́ля передає тобі цілунок!',
+    'Бабу́ся А́ня дуже тобою пишається!',
   ],
   puddle: ['Ой, калюжа!', 'Бризки на всі боки!', 'Хлюп-хлюп!'],
   dogJoin: [
     ['Шейла біжить з тобою!', 'Шейла каже: гав-гав!', 'Сіра Шейла поруч!'],
     ['Рей біжить з тобою!', 'Рей радіє і гавкає!', 'Білий Рей уже тут!'],
+    ['Тайсо́н біжить з тобою!', 'Малий Тайсо́н поспішає!', 'Тайсо́н гавкає: дзяв-дзяв!'],
   ],
-  dogNames: ['Шейла!', 'Рей!'],
+  dogNames: ['Шейла!', 'Рей!', 'Тайсо́н!'],
   countdownShow: ['1', '2', '3', 'Поїхали!'],
   countdownSay: ['Раз!', 'Два!', 'Три!', 'Поїхали!'],
-  turbo: ['Турбо!', 'Як блискавка!', 'Вжух! Швидко!', 'Тримайся, Ромчику!', 'Повний вперед!'],
+  turbo: ['Турбо!', 'Як блискавка!', 'Вжух! Швидко!', 'Тримайся, {n}!', 'Повний вперед!'],
   bump: ['Оп!', 'Ой-ой!', 'Ха-ха!', 'Бум!', 'Нічого страшного!', 'Їдемо далі!'],
   encourage: [
-    'Лови зірочку, Ромчику!',
+    'Лови зірочку, {n}!',
     'Тисни на екран — і стрибай!',
     'Дивись, скільки іграшок!',
-    'Спіймай зірочку!',
+    'Спіймай зірочку, {n}!',
   ],
   moo: 'Му-у!',
   sheep: 'Бе-е! Овечка!',
@@ -158,7 +171,72 @@ const UA = {
     tractor: 'Тр-тр-тр!', helicopter: 'Вжух-вжух!', train: 'Чух-чух!',
     police: 'Віу-віу!', plane: 'Вжу-у-ух!', rocket: 'Пуск!',
   },
-  names: { dad: 'Тато', mom: 'Мама', sis: 'Даринка', dog1: 'Шейла', dog2: 'Рей' },
+  names: { dad: 'Тато', mom: 'Мама', sis: 'Даринка', dog1: 'Шейла', dog2: 'Рей', granny1: 'Бабуся Галя', granny2: 'Бабуся Аня', tyson: 'Тайсон' },
+};
+
+/* ---- Mission stories: a tiny intro before each stage, a payoff at the
+ * celebration. Picked randomly, so missions feel freshly generated. ---- */
+const STORIES = {
+  car: [
+    { i: 'Бабу́ся Га́ля спекла пиріжки! Відвеземо їх машинкою!', p: 'Пиріжки доставлено! Бабу́ся Га́ля дякує!' },
+    { i: 'Тайсо́н загубив свій мʼячик! Допоможи знайти!', p: 'Мʼячик знайшовся! Тайсо́н стрибає від щастя!' },
+    { i: 'Мама чекає на квіти! Поїхали по букет!', p: 'Який букет! Мама усміхається!' },
+    { i: 'Тато кличе на пікнік! Зберемо іграшки в дорогу!', p: 'Усе зібрали! Пікнік буде веселим!' },
+  ],
+  moto: [
+    { i: 'Відвеземо листа бабу́сі А́ні у її квартиру!', p: 'Лист доставлено! Бабу́ся А́ня радіє!' },
+    { i: 'Поспішаємо до бабу́сі Га́лі на чай з варенням!', p: 'Встигли! Чай з варенням — смакота!' },
+    { i: 'Шейла хоче наввипередки! Хто швидше?', p: 'Оце перегони! Шейла весело гавкає!' },
+    { i: 'Тато просить привезти інструменти з гаража!', p: 'Інструменти в тата! Майструємо разом!' },
+  ],
+  drone: [
+    { i: 'Дрон везе подарунок для маленької Дари́нки!', p: 'Дари́нка агукає від радості!' },
+    { i: 'Сфотографуємо веселку з висоти для мами!', p: 'Яке фото! Мама повісить його на стіну!' },
+    { i: 'Кульки розлетілися по небу! Зберімо їх!', p: 'Усі кульки зібрано! Жодна не втекла!' },
+    { i: 'Подивимось згори, де будинок бабу́сі Га́лі!', p: 'Он він, великий будинок! Бабу́ся махає нам!' },
+  ],
+  firetruck: [
+    { i: 'Кошеня залізло на дерево! Їдемо рятувати!', p: 'Кошеня врятовано! Воно муркоче: няв!' },
+    { i: 'Поллємо квіти біля будинку бабу́сі Га́лі!', p: 'Квіти политі! Як гарно пахнуть!' },
+    { i: 'Сьогодні тренування пожежників! Покажемо клас!', p: 'Тренування на відмінно! Ти справжній пожежник!' },
+    { i: 'Тайсо́н десь сховався! Пожежна машина допоможе!', p: 'Ось він, Тайсо́н! Сидів у будці!' },
+  ],
+  tractor: [
+    { i: 'Бабу́ся Га́ля просить зібрати врожай на городі!', p: 'Врожай зібрано! Буде смачний борщ!' },
+    { i: 'Овечки чекають на свіже сіно! Розвеземо!', p: 'Овечки ситі та задоволені: бе-е!' },
+    { i: 'Тайсо́н закопав кісточку в полі! Знайдімо її!', p: 'Кісточка знайшлася! Тайсо́н гризе щасливий!' },
+    { i: 'Привеземо гарбуза — найбільшого на полі!', p: 'Оце гарбуз! Більший за Тайсо́на!' },
+  ],
+  helicopter: [
+    { i: 'Відвеземо бабу́сі А́ні гостинці через море!', p: 'Гостинці в бабу́сі А́ні! Вона пригощає сусідів!' },
+    { i: 'Кораблик заблукав у морі! Покажемо дорогу!', p: 'Кораблик удома! Дякує нам гудком!' },
+    { i: 'Полічимо дельфінів з висоти!', p: 'Стільки дельфінів! Аж вистрибують з води!' },
+    { i: 'Маяк погас! Доставимо нову лампочку!', p: 'Маяк світить! Кораблі кажуть дякую!' },
+  ],
+  train: [
+    { i: 'Веземо іграшки дітям у гори!', p: 'Іграшки приїхали! Діти плескають у долоні!' },
+    { i: 'По́їзд везе яблука для бабу́сі Га́лі!', p: 'Яблука на місці! Буде яблучний пиріг!' },
+    { i: 'Шейла і Рей їдуть у вагончиках! Чух-чух!', p: 'Приїхали! Хвостики махають на всі боки!' },
+    { i: 'Корівка чекає на гостинці з міста!', p: 'Корівка задоволена! Каже: му-у, дякую!' },
+  ],
+  police: [
+    { i: 'Ліхтарики в місті згасли! Посвітимо всім!', p: 'Місто сяє вогниками! Всім видно дорогу!' },
+    { i: 'Допоможемо їжачку перейти нічну дорогу!', p: 'Їжачок удома! Дякує голочками!' },
+    { i: 'Нічний патруль! Перевіримо, чи місто спить спокійно!', p: 'Усе спокійно! Місто солодко спить!' },
+    { i: 'Бабу́ся А́ня забула ключі! Швидко веземо запасні!', p: 'Ключі в бабу́сі А́ні! Вона вже вдома, в теплі!' },
+  ],
+  plane: [
+    { i: 'Летимо в гості до бабу́сі А́ні!', p: 'Прилетіли! Бабу́ся А́ня міцно обіймає!' },
+    { i: 'Намалюємо в небі хмаринку-серце для мами!', p: 'Серце в небі! Мама бачить його з двору!' },
+    { i: 'Доженемо велику повітряну кулю!', p: 'Догнали! Куля привіталася з нами!' },
+    { i: 'Веземо Дари́нці мʼяку іграшку з далекого міста!', p: 'Дари́нка обіймає іграшку і агукає!' },
+  ],
+  rocket: [
+    { i: 'Зірочка загубилась! Повернемо її на небо!', p: 'Зірочка вдома! Вона підморгує нам!' },
+    { i: 'Веземо місяцю теплу ковдру, щоб солодко спав!', p: 'Місяць вкрився і спить! Тс-с-с!' },
+    { i: 'Полічимо планети для маленької Дари́нки!', p: 'Усі планети полічено! Розкажемо Дари́нці вдома!' },
+    { i: 'Тато каже: на небі салют! Подивимось зблизька!', p: 'Який салют! Аж зірки танцюють!' },
+  ],
 };
 
 /* ---- Stage configuration ----
@@ -173,7 +251,7 @@ const STAGES = [
   { key: 'firetruck',  name: 'Пожежна машина!',  say: 'Пожежна машина! Ту-ту-у!',       fly: false, night: false, speed: 340, sky: ['#73c2fb', '#d6f0ff'], hills: ['#7bc950', '#52a83a'], ground: 'road',        road: '#4f5563', decor: 'city',      pool: 'ground', lead: 'square',   tempo: 118 },
   { key: 'tractor',    name: 'Трактор!',         say: 'Трактор! Тр-тр-тр!',             fly: false, night: false, speed: 300, sky: ['#8ecae6', '#fff3b0'], hills: ['#a3d977', '#74b94e'], ground: 'road',        road: '#8a6f4d', decor: 'farm',      pool: 'ground', lead: 'sawtooth', tempo: 96  },
   { key: 'helicopter', name: 'Гелікоптер!',      say: 'Гелікоптер! Летимо над морем!',  fly: true,  night: false, speed: 340, sky: ['#48b5e4', '#d4f1f9'], hills: ['#79c2a8', '#4ea58b'], ground: 'sea',         road: null,      decor: 'none',      pool: 'sea',    lead: 'triangle', tempo: 116 },
-  { key: 'train',      name: 'Поїзд!',           say: 'Поїзд! Чух-чух!',                fly: false, night: false, speed: 310, sky: ['#7fc8f8', '#e3f6ff'], hills: ['#84c887', '#5aa860'], ground: 'rails',       road: '#6b5b4d', decor: 'mountains', pool: 'ground', lead: 'square',   tempo: 100 },
+  { key: 'train',      name: 'Поїзд!',           say: 'По́їзд! Чух-чух!',                fly: false, night: false, speed: 310, sky: ['#7fc8f8', '#e3f6ff'], hills: ['#84c887', '#5aa860'], ground: 'rails',       road: '#6b5b4d', decor: 'mountains', pool: 'ground', lead: 'square',   tempo: 100 },
   { key: 'police',     name: 'Поліція!',         say: 'Поліцейська машинка! Віу-віу!',  fly: false, night: true,  speed: 360, sky: ['#1d2d50', '#4a5d8f'], hills: ['#2c3a5e', '#222d49'], ground: 'road',        road: '#343b50', decor: 'nightcity', pool: 'nightGround', lead: 'sawtooth', tempo: 114 },
   { key: 'plane',      name: 'Літак!',           say: 'Літак! Вище хмар!',              fly: true,  night: false, speed: 350, sky: ['#56cfe1', '#e0fbfc'], hills: ['#d2ecfa', '#bfe2f5'], ground: 'clouds',      road: null,      decor: 'balloons',  pool: 'plane',  lead: 'triangle', tempo: 110 },
   { key: 'rocket',     name: 'Ракета!',          say: 'Ракета! Летимо у космос!',       fly: true,  night: true,  speed: 330, sky: ['#141c3f', '#3d5a99'], hills: ['#27355c', '#1c2747'], ground: 'nightmeadow', road: null,      decor: 'none',      pool: 'space',  lead: 'triangle', tempo: 92  },
@@ -418,7 +496,10 @@ const Voice = {
       || uk[0] || null;
   },
   say(text, { force = false, emotion = 'neutral', queue = false } = {}) {
-    bubble(text);
+    /* '{n}' becomes a random affectionate address (Ро́мчику, со́нечко…) */
+    if (text.includes('{n}')) text = text.replace('{n}', pick(UA.callNames));
+    /* the bubble shows clean text; the utterance keeps stress marks */
+    bubble(text.replace(/́/g, ''));
     if (muted || !window.speechSynthesis) return;
     if (speechSynthesis.speaking && !force && !queue) return;
     if (force) speechSynthesis.cancel();
@@ -479,6 +560,10 @@ const game = {
   celebFwT: 0,             // fireworks timer during celebration
   celebCount: 0, celebStepT: 0, celebPraised: false, // star counting ceremony
   idleT: 0,                // seconds since the last collect (gentle nudge)
+  story: null,             // {i: intro, p: payoff} mission story for this stage
+  storySaid: false,        // intro line spoken during the countdown
+  mathGate: false,         // math question between 10 stars and celebration
+  celebGuest: 0,           // 0: grandma Galya + Tyson, 1: grandma Anya
 };
 
 const player = {
@@ -761,7 +846,40 @@ function startHunt() {
 
 function huntSay() {
   if (hunt.mode === 'number') Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
-  else Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
+  else if (hunt.mode === 'color') Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
+  else Voice.say(UA.mathPrompt(UA.digits[hunt.a - 1], UA.digits[hunt.b - 1]), { force: true, emotion: 'calm' });
+}
+
+/* Math gate: after ten stars a tiny addition question (sums up to five)
+ * unlocks the celebration. Friendly retries; auto-passes after a while. */
+function maybeFinishStage() {
+  if (game.collected < GOAL || game.state !== 'play' || game.mathGate) return;
+  game.mathGate = true;
+  hunt = null;
+  startMathGate();
+}
+
+function startMathGate() {
+  const a = 1 + ((Math.random() * 3) | 0);
+  const b = 1 + ((Math.random() * 2) | 0);
+  const sum = a + b;
+  const set = new Set([sum]);
+  while (set.size < 3) set.add(1 + ((Math.random() * 6) | 0));
+  const arr = [...set].sort(() => Math.random() - 0.5);
+  const fly = STAGES[game.stage].fly;
+  const slots = fly
+    ? [groundY - 130, groundY - 290, groundY - 430]
+    : [groundY - 64, groundY - 140, groundY - 205];
+  hunt = {
+    mode: 'math', a, b, target: sum, t: 0, promptT: 9,
+    balloons: arr.map((d, i) => ({
+      x: worldW + 80 + i * 170, y: slots[i % 3], digit: d,
+      color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
+    })),
+  };
+  game.bannerT = 2.6;
+  game.bannerText = UA.mathBanner(hunt.a, hunt.b);
+  Voice.say(UA.mathPrompt(UA.digits[a - 1], UA.digits[b - 1]), { force: true, emotion: 'calm' });
 }
 
 function updateHunt(dt, v, px, py) {
@@ -771,7 +889,13 @@ function updateHunt(dt, v, px, py) {
     hunt.promptT = 9;
     huntSay();
   }
-  if (hunt.t > 32) { hunt = null; return; }
+  if (hunt.t > (hunt.mode === 'math' ? 28 : 32)) {
+    /* never block the party: an ignored math question passes by itself */
+    const wasMath = hunt.mode === 'math';
+    hunt = null;
+    if (wasMath) startCelebration();
+    return;
+  }
   for (const b of hunt.balloons) {
     if (b.pop > 0) {
       b.pop -= dt;
@@ -781,28 +905,37 @@ function updateHunt(dt, v, px, py) {
     b.x -= v * 0.55 * dt;
     if (b.x < -60) b.x = worldW + 80;
     if (Math.hypot(px - b.x, py - b.y) < 72) {
-      const right = hunt.mode === 'number' ? b.digit === hunt.target : b.colorIdx === hunt.target;
+      const right = hunt.mode === 'color' ? b.colorIdx === hunt.target : b.digit === hunt.target;
       if (right) {
         SFX.combo(); SFX.collect();
         spawnSparkles(b.x, b.y, 20);
         if (hunt.mode === 'number') {
           floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
           Voice.say(UA.huntRight(UA.digits[b.digit - 1]), { force: true, emotion: 'excited' });
-        } else {
+        } else if (hunt.mode === 'color') {
           Voice.say(UA.colorRight(HUNT_COLORS[b.colorIdx].name), { force: true, emotion: 'excited' });
+        } else {
+          /* math gate solved — straight to the celebration */
+          floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
+          Voice.say(UA.mathRight(UA.digits[hunt.a - 1], UA.digits[hunt.b - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'excited' });
+          hunt = null;
+          startCelebration();
+          return;
         }
         game.collected++;
         game.idleT = 0;
         hunt = null;
-        if (game.collected >= GOAL) startCelebration();
+        maybeFinishStage();
         return;
       }
       SFX.wrong();
       spawnPuff(b.x, b.y, b.color, 9);
       if (hunt.mode === 'number') {
         Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
-      } else {
+      } else if (hunt.mode === 'color') {
         Voice.say(UA.colorWrong(HUNT_COLORS[b.colorIdx].name, HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
+      } else {
+        Voice.say(UA.mathWrong(UA.digits[b.digit - 1], UA.digits[hunt.a - 1], UA.digits[hunt.b - 1]), { force: true, emotion: 'calm' });
       }
       b.pop = 1.4;
     }
@@ -920,7 +1053,8 @@ function collect(it) {
     SFX.turbo();
     Voice.say(pick(UA.turbo), { force: true, emotion: 'excited' });
   } else if (it.kind === '🦴') {
-    game.dogToggle = 1 - game.dogToggle;
+    /* Sheila, Rey and little Tyson take turns */
+    game.dogToggle = (game.dogToggle + 1) % 3;
     dog = { breed: game.dogToggle, t: 8 };
     SFX.bark();
     Voice.say(pick(UA.dogJoin[game.dogToggle]), { emotion: 'warm' });
@@ -941,7 +1075,7 @@ function collect(it) {
       : num + '!';
     Voice.say(txt, { emotion: game.praiseCounter % 3 === 0 ? 'excited' : 'neutral' });
   }
-  if (game.collected >= GOAL) startCelebration();
+  maybeFinishStage();
 }
 
 function startCelebration() {
@@ -952,6 +1086,7 @@ function startCelebration() {
   game.celebCount = 0;
   game.celebStepT = 1.6;       // give the intro line a moment
   game.celebPraised = false;
+  game.celebGuest = (Math.random() * 2) | 0;
   hunt = null;
   obstacles.length = 0;
   burstConfetti();
@@ -980,7 +1115,11 @@ function nextStage() {
   game.bannerText = cfg.name;
   game.comboCount = 0; game.trailT = 0; game.turboT = 0;
   game.stageT = 0; game.huntCount = 0;
-  game.countT = 4.6; game.countIdx = -2;
+  /* longer intro: vehicle name, then the mission story, then 1-2-3 */
+  game.countT = 7.4; game.countIdx = -2;
+  game.story = pick(STORIES[cfg.key]);
+  game.storySaid = false;
+  game.mathGate = false;
   items.length = 0; puddles.length = 0; trail.length = 0; floats.length = 0;
   obstacles.length = 0;
   wagons[0].y = 0; wagons[1].y = 0;
@@ -1010,7 +1149,10 @@ function update(dt) {
       }
     } else if (!game.celebPraised) {
       game.celebPraised = true;
-      Voice.say(UA.countDone + ' ' + pick(UA.celebrateSay), { queue: true, emotion: 'warm' });
+      /* close this mission's story, sometimes with extra family praise */
+      const payoff = game.story ? game.story.p : pick(UA.celebrateSay);
+      Voice.say(UA.countDone + ' ' + payoff, { queue: true, emotion: 'warm' });
+      if (Math.random() < 0.4) Voice.say(pick(UA.celebrateSay), { queue: true, emotion: 'warm' });
     }
     /* fireworks pop during the whole celebration */
     game.celebFwT -= dt;
@@ -1040,10 +1182,15 @@ function update(dt) {
   /* ready-set-go countdown: world frozen, vehicle can hop in place */
   if (game.countT > 0) {
     game.countT -= dt;
+    /* tell this mission's little story right after the vehicle name */
+    if (!game.storySaid && game.countT < 6.2 && game.story) {
+      game.storySaid = true;
+      Voice.say(game.story.i, { queue: true, emotion: 'warm' });
+    }
     const idx = game.countT > 3.6 ? -1 : game.countT > 2.6 ? 0 : game.countT > 1.6 ? 1 : game.countT > 0.6 ? 2 : 3;
     if (idx !== game.countIdx && idx >= 0) {
       game.countIdx = idx;
-      Voice.say(UA.countdownSay[idx], { force: idx === 3, emotion: idx === 3 ? 'excited' : 'neutral' });
+      Voice.say(UA.countdownSay[idx], { force: idx === 3, queue: true, emotion: idx === 3 ? 'excited' : 'neutral' });
       if (idx === 3) SFX.combo(); else SFX.collect();
     }
     if (!cfg.fly && !player.onGround) {
@@ -2199,7 +2346,114 @@ const HAIR = {
       ctx.fillStyle = '#9c6644';
     }
   },
+  /* grandma Galya: warm headscarf with a grey fringe peeking out */
+  galya: (r, cy) => {
+    ctx.fillStyle = '#cfd2cd';
+    ctx.beginPath(); ctx.arc(0, cy, r * 1.0, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+    ctx.fillStyle = '#e07a5f';
+    ctx.beginPath(); ctx.arc(0, cy - r * 0.22, r * 1.12, Math.PI * 0.92, Math.PI * 2.08); ctx.fill();
+    /* scarf flap hanging by the cheek */
+    ctx.beginPath();
+    ctx.moveTo(r * 0.85, cy - r * 0.1); ctx.lineTo(r * 1.15, cy + r * 0.9); ctx.lineTo(r * 0.45, cy + r * 0.45);
+    ctx.closePath(); ctx.fill();
+  },
+  /* grandma Anya: grey bun and round glasses */
+  anya: (r, cy) => {
+    ctx.fillStyle = '#cfd2cd';
+    ctx.beginPath(); ctx.arc(0, cy - r * 0.2, r * 1.02, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, cy - r * 1.15, r * 0.42, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#4a4e69'; ctx.lineWidth = Math.max(2, r * 0.1);
+    ctx.beginPath(); ctx.arc(-r * 0.35, cy, r * 0.3, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(r * 0.35, cy, r * 0.3, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-r * 0.06, cy); ctx.lineTo(r * 0.06, cy); ctx.stroke();
+  },
 };
+
+/* Baby Darynka (six months old): sits on a blanket and wiggles happily */
+function drawBaby(x, baseY, t) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.rotate(Math.sin(t * 3) * 0.06);
+  /* blanket */
+  ctx.fillStyle = '#ffe5ec';
+  ctx.beginPath(); ctx.ellipse(0, -2, 34, 8, 0, 0, Math.PI * 2); ctx.fill();
+  /* legs stretched forward */
+  ctx.strokeStyle = '#ff8fab'; ctx.lineWidth = 11; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-6, -16); ctx.lineTo(-22, -4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6, -16); ctx.lineTo(22, -4); ctx.stroke();
+  /* onesie body */
+  ctx.fillStyle = '#ff8fab';
+  rr(-15, -42, 30, 30, 13); ctx.fill();
+  /* little waving arms */
+  ctx.strokeStyle = '#ff8fab'; ctx.lineWidth = 8;
+  const wave = Math.sin(t * 6) * 6;
+  ctx.beginPath(); ctx.moveTo(-13, -34); ctx.lineTo(-26, -44 - wave); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(13, -34); ctx.lineTo(26, -44 + wave); ctx.stroke();
+  ctx.fillStyle = '#ffd6b1';
+  ctx.beginPath(); ctx.arc(-26, -45 - wave, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(26, -45 + wave, 4, 0, Math.PI * 2); ctx.fill();
+  /* big baby head with one curl */
+  ctx.fillStyle = '#ffd6b1';
+  ctx.beginPath(); ctx.arc(0, -56, 16, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#9c6644'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(2, -74, 4, Math.PI * 0.5, Math.PI * 1.6); ctx.stroke();
+  /* closed happy eyes + smile + cheeks */
+  ctx.strokeStyle = '#2b2d42'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(-5.5, -58, 2.6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+  ctx.beginPath(); ctx.arc(5.5, -58, 2.6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -52, 4, 0.3, Math.PI - 0.3); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,120,140,.55)';
+  ctx.beginPath(); ctx.arc(-9, -52, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(9, -52, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/* Tyson: grandma Galya's small brown pup with floppy ears */
+function drawTyson(x, baseY, t, sitting = false) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  const run = sitting ? 0 : Math.sin(t * 14);
+  ctx.translate(0, sitting ? 0 : -Math.abs(run) * 4);
+  /* wagging tail */
+  ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-24, -28);
+  ctx.lineTo(-32, -38 + Math.sin(t * 10) * 5);
+  ctx.stroke();
+  /* legs */
+  ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 7;
+  if (sitting) {
+    ctx.beginPath(); ctx.moveTo(10, -16); ctx.lineTo(12, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-14, -12); ctx.lineTo(-17, 0); ctx.stroke();
+  } else {
+    for (const [lx, ph] of [[-16, 0], [-7, Math.PI], [8, Math.PI * 0.5], [16, Math.PI * 1.5]]) {
+      const sw = Math.sin(t * 14 + ph) * 9;
+      ctx.beginPath(); ctx.moveTo(lx, -15); ctx.lineTo(lx + sw, 0); ctx.stroke();
+    }
+  }
+  /* body */
+  ctx.fillStyle = '#a06a35';
+  rr(-26, -34, 52, 22, 11); ctx.fill();
+  ctx.fillStyle = '#d9b98c';
+  rr(-18, -22, 38, 9, 4); ctx.fill();
+  /* head with floppy ears */
+  ctx.fillStyle = '#a06a35';
+  ctx.beginPath(); ctx.arc(26, -38, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#7a4f23';
+  ctx.beginPath(); ctx.ellipse(16, -46, 5, 9, 0.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(30, -48, 5, 9, -0.2, 0, Math.PI * 2); ctx.fill();
+  /* snout + nose */
+  ctx.fillStyle = '#d9b98c';
+  ctx.beginPath(); ctx.ellipse(35, -33, 8, 6, 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#22223b';
+  ctx.beginPath(); ctx.arc(41, -35, 2.8, 0, Math.PI * 2); ctx.fill();
+  /* eye + tongue */
+  ctx.fillStyle = '#2b2d42';
+  ctx.beginPath(); ctx.arc(28, -41, 2.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ff8fab';
+  ctx.beginPath(); ctx.ellipse(36, -27, 3, 4.5, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 
 /* ---------------- Scene drawing ---------------- */
 function drawVehicle(key, x, groundedY, flyY, squash, tilt, t) {
@@ -2298,8 +2552,8 @@ function drawBalloons() {
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.5)';
     ctx.beginPath(); ctx.ellipse(b.x - 12, bobY - 12, 7, 11, 0.6, 0, Math.PI * 2); ctx.fill();
-    /* digit disc — number hunts only; colour hunts keep the balloon plain */
-    if (hunt.mode === 'number') {
+    /* digit disc — number/math hunts; colour hunts keep the balloon plain */
+    if (hunt.mode !== 'color') {
       ctx.fillStyle = 'rgba(255,255,255,.92)';
       ctx.beginPath(); ctx.arc(b.x, bobY, 21, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#2b2d42';
@@ -2323,10 +2577,14 @@ function drawHuntCard() {
     ctx.fillStyle = '#2b2d42';
     ctx.font = '900 36px system-ui';
     ctx.fillText(String(hunt.target), 86, 105);
-  } else {
+  } else if (hunt.mode === 'color') {
     ctx.fillStyle = HUNT_COLORS[hunt.target].hex;
     ctx.beginPath(); ctx.arc(86, 103, 17, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 2.5; ctx.stroke();
+  } else {
+    ctx.fillStyle = '#2b2d42';
+    ctx.font = '900 26px system-ui';
+    ctx.fillText(hunt.a + '+' + hunt.b, 86, 105);
   }
 }
 
@@ -2576,26 +2834,39 @@ function drawCelebration() {
   }
 
   const cx = worldW / 2;
-  /* Romchyk himself celebrates in the middle, bouncing highest */
-  const f = Math.min(1, worldW / 660);
-  const labels = [UA.names.dad, UA.names.mom, UA.kid, UA.names.sis, UA.names.dog1, UA.names.dog2];
-  const xs = [-270, -160, -45, 60, 165, 285].map((o) => cx + o * f);
+  /* Romchyk in the middle; baby Darynka sits and wiggles; one grandma
+   * visits each celebration (Galya brings little Tyson along). */
+  const f = Math.min(1, worldW / 700);
+  const galya = game.celebGuest === 0;
+  /* the tall grandma stands centre (her head clears the speech bubble);
+   * baby Darynka sits to the side where the bubble never covers her */
+  const labels = galya
+    ? [UA.names.dad, UA.names.mom, UA.kid, UA.names.granny1, UA.names.sis, UA.names.dog1, UA.names.dog2, UA.names.tyson]
+    : [UA.names.dad, UA.names.mom, UA.kid, UA.names.granny2, UA.names.sis, UA.names.dog1, UA.names.dog2];
+  const offs = galya
+    ? [-305, -200, -100, -10, 90, 170, 255, 320]
+    : [-290, -185, -90, 0, 95, 185, 270];
+  const xs = offs.map((o) => cx + o * f);
   const b = (i) => Math.abs(Math.sin(t * 4 + i * 0.7)) * 20;
   drawPerson(xs[0], groundY, 165, '#ffd6b1', '#1982c4', HAIR.dad, b(0));
   drawPerson(xs[1], groundY, 150, '#ffd6b1', '#e63946', HAIR.mom, b(1));
   drawPerson(xs[2], groundY, 110, '#ffd6b1', '#3a86ff', HAIR.kid, b(2) * 1.5);
-  drawPerson(xs[3], groundY, 95, '#ffd6b1', '#ff8fab', HAIR.sis, b(3));
-  ctx.save(); ctx.translate(xs[4], groundY - b(4) * 0.6); ctx.scale(0.85, 0.85); drawHusky(0, 0, t, 0, true); ctx.restore();
-  ctx.save(); ctx.translate(xs[5], groundY - b(5) * 0.6); ctx.scale(0.85, 0.85); drawHusky(0, 0, t, 1, true); ctx.restore();
+  drawPerson(xs[3], groundY, galya ? 152 : 142, '#ffd6b1', galya ? '#9d4edd' : '#588157', galya ? HAIR.galya : HAIR.anya, b(3) * 0.5);
+  drawBaby(xs[4], groundY, t);
+  ctx.save(); ctx.translate(xs[5], groundY - b(5) * 0.6); ctx.scale(0.85, 0.85); drawHusky(0, 0, t, 0, true); ctx.restore();
+  ctx.save(); ctx.translate(xs[6], groundY - b(6) * 0.6); ctx.scale(0.85, 0.85); drawHusky(0, 0, t, 1, true); ctx.restore();
+  if (galya) { ctx.save(); ctx.translate(xs[7], groundY - b(7) * 0.4); drawTyson(0, 0, t, true); ctx.restore(); }
 
-  ctx.font = '700 20px ui-rounded, system-ui';
+  ctx.font = '700 19px ui-rounded, system-ui';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   labels.forEach((name, i) => {
     const w = ctx.measureText(name).width + 18;
+    /* two label rows so neighbouring names never overlap */
+    const ly = groundY + (i % 2 ? 48 : 16);
     ctx.fillStyle = 'rgba(255,255,255,.85)';
-    rr(xs[i] - w / 2, groundY + 16, w, 28, 14); ctx.fill();
+    rr(xs[i] - w / 2, ly, w, 28, 14); ctx.fill();
     ctx.fillStyle = '#2b2d42';
-    ctx.fillText(name, xs[i], groundY + 30);
+    ctx.fillText(name, xs[i], ly + 14);
   });
 
   const cfg = STAGES[game.stage];
@@ -2616,7 +2887,8 @@ function drawDog() {
   if (!dog) return;
   const fade = Math.min(1, dog.t);
   ctx.globalAlpha = fade;
-  drawHusky(player.x - 130, groundY, game.time, dog.breed);
+  if (dog.breed === 2) drawTyson(player.x - 120, groundY, game.time);
+  else drawHusky(player.x - 130, groundY, game.time, dog.breed);
   ctx.globalAlpha = 1;
 }
 
@@ -2668,7 +2940,10 @@ document.getElementById('playBtn').addEventListener('click', () => {
   game.bannerText = STAGES[game.stage].name;
   game.stageT = 0;
   game.huntCount = 0;
-  game.countT = 4.6; game.countIdx = -2;
+  game.countT = 7.4; game.countIdx = -2;
+  game.story = pick(STORIES[STAGES[game.stage].key]);
+  game.storySaid = false;
+  game.mathGate = false;
   Voice.say(pick(UA.greetings), { force: true, emotion: 'warm' });
 });
 
