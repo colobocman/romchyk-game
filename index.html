@@ -39,6 +39,7 @@
     box-shadow: 0 6px 0 rgba(0,0,0,.15);
     transition: transform .25s cubic-bezier(.34,1.56,.64,1);
     z-index: 15; pointer-events: none; white-space: nowrap;
+    max-width: 94vw; overflow: hidden; text-overflow: ellipsis;
   }
   #bubble.show { transform: translateX(-50%) scale(1); }
 
@@ -46,7 +47,7 @@
   #title {
     position: fixed; inset: 0; z-index: 30;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4vh; text-align: center;
+    gap: 3.6vh; text-align: center;
     background: linear-gradient(#62b6f7 0%, #a8e0ff 55%, #8edd65 55.2%, #5fb944 100%);
   }
   #title h1 {
@@ -55,7 +56,7 @@
     animation: bob 2s ease-in-out infinite;
     padding: 0 16px;
   }
-  #title .emojis { font-size: clamp(28px, 7vw, 56px); animation: bob 2s .3s ease-in-out infinite; }
+  #title .emojis { font-size: clamp(22px, 5.4vw, 44px); animation: bob 2s .3s ease-in-out infinite; }
   @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-12px) } }
   #playBtn {
     border: none; cursor: pointer;
@@ -79,16 +80,17 @@
 
 <div id="title">
   <h1>Ромчик:<br>Великі Перегони</h1>
-  <div class="emojis">🏎️&nbsp;🏍️&nbsp;🚁&nbsp;🚒&nbsp;🚜&nbsp;🚀</div>
+  <div class="emojis">🏎️&nbsp;🏍️&nbsp;🚁&nbsp;🚒&nbsp;🚜&nbsp;🚂&nbsp;🚓&nbsp;✈️&nbsp;🚀</div>
   <button id="playBtn">▶&nbsp;ГРАТИ</button>
-  <div class="credit">Для Ромчика з любов'ю ❤️<br>Шейла 🐺 та Рей 🐶 вже чекають!</div>
+  <div class="credit">Для Ромчика з любов'ю ❤️ Рахуємо зірочки разом: 1, 2, 3…<br>Шейла 🐺 та Рей 🐶 вже чекають!</div>
 </div>
 
 <script>
 'use strict';
 /* =====================================================================
- * Romchyk: The Big Race v2 — a one-button endless ride for a 3.5-year-old.
- * Six vehicles, no fail state. Canvas 2D + WebAudio + uk-UA speech.
+ * Romchyk: The Big Race v3 — a one-button endless ride for a 3.5-year-old.
+ * Ten vehicles, number learning, tap toys, no fail state.
+ * Canvas 2D + WebAudio + uk-UA speech. Single file, no dependencies.
  * ===================================================================== */
 
 /* ---- All user-facing strings (game is localized to Ukrainian) ---- */
@@ -101,29 +103,46 @@ const UA = {
   ],
   combos: ['Вау! Три підряд!', 'Супер швидко, Ромчику!', 'Як блискавка!'],
   gift: 'Подарунок!',
+  numbers: ['Один', 'Два', 'Три', 'Чотири', "П'ять", 'Шість', 'Сім', 'Вісім', "Дев'ять", 'Десять'],
+  digits: ['один', 'два', 'три', 'чотири', "п'ять", 'шість', 'сім', 'вісім', "дев'ять"],
+  huntPrompt: (w) => 'Знайди цифру ' + w + '!',
+  huntBanner: (n) => 'Знайди цифру ' + n + '!',
+  huntRight: (w) => 'Так! Це ' + w + '! Молодець, Ромчику!',
+  huntWrong: (k, w) => 'Це ' + k + '. А де ' + w + '?',
   celebrate: 'Молодець, Ромчику!',
   celebrateSay: [
-    'Молодець, Ромчику! Зібрав усі зірочки!',
+    'Молодець, Ромчику! Зібрав усі десять зірочок!',
     'Ура! Мама, тато і Даринка радіють!',
     'Шейла і Рей пишаються тобою!',
     'Десять зірочок! Ти чемпіон!',
   ],
   puddle: 'Ой, калюжа!',
   dogJoin: ['Шейла біжить з тобою!', 'Рей біжить з тобою!'],
+  dogNames: ['Шейла!', 'Рей!'],
+  honks: {
+    car: 'Бі-бі!', moto: 'Врум!', drone: 'Вжух!', firetruck: 'Ту-ту!',
+    tractor: 'Тр-тр-тр!', helicopter: 'Вжух-вжух!', train: 'Чух-чух!',
+    police: 'Віу-віу!', plane: 'Вжу-у-ух!', rocket: 'Пуск!',
+  },
   names: { dad: 'Тато', mom: 'Мама', sis: 'Даринка', dog1: 'Шейла', dog2: 'Рей' },
 };
 
 /* ---- Stage configuration ----
- * fly: tap = fly up instead of jump. night: moon/stars instead of sun.
- * decor: trees | city | farm | flowers | space
+ * fly: tap = fly up instead of jump. night: dark sky.
+ * ground: road | rails | flowers | sea | clouds | nightmeadow
+ * decor: trees | city | farm | mountains | nightcity | balloons | none
  */
 const STAGES = [
-  { key: 'car',       name: 'Червона машинка!',  say: 'Червона машинка! Бі-бі!',       fly: false, night: false, speed: 330, sky: ['#62b6f7', '#bfe7ff'], hills: ['#8edd65', '#5fb944'], decor: 'trees',   road: '#555a64', lead: 'square',   tempo: 112 },
-  { key: 'moto',      name: 'Мотоцикл!',         say: 'Мотоцикл! Врум-врум!',          fly: false, night: false, speed: 385, sky: ['#ff9e5e', '#ffd6a5'], hills: ['#d88c51', '#a8653a'], decor: 'trees',   road: '#5a4a42', lead: 'sawtooth', tempo: 122 },
-  { key: 'drone',     name: 'Дрон! Летимо!',     say: 'Дрон! Летимо високо!',          fly: true,  night: false, speed: 320, sky: ['#4ea8de', '#caf0f8'], hills: ['#90e07c', '#62c258'], decor: 'flowers', road: null,      lead: 'triangle', tempo: 102 },
-  { key: 'firetruck', name: 'Пожежна машина!',   say: 'Пожежна машина! Ту-ту-у!',      fly: false, night: false, speed: 340, sky: ['#73c2fb', '#d6f0ff'], hills: ['#7bc950', '#52a83a'], decor: 'city',    road: '#4f5563', lead: 'square',   tempo: 118 },
-  { key: 'tractor',   name: 'Трактор!',          say: 'Трактор! Тр-тр-тр!',            fly: false, night: false, speed: 300, sky: ['#8ecae6', '#fff3b0'], hills: ['#a3d977', '#74b94e'], decor: 'farm',    road: '#8a6f4d', lead: 'sawtooth', tempo: 96  },
-  { key: 'rocket',    name: 'Ракета!',           say: 'Ракета! Летимо у космос!',      fly: true,  night: true,  speed: 330, sky: ['#141c3f', '#3d5a99'], hills: ['#27355c', '#1c2747'], decor: 'space',   road: null,      lead: 'triangle', tempo: 92  },
+  { key: 'car',        name: 'Червона машинка!', say: 'Червона машинка! Бі-бі!',        fly: false, night: false, speed: 330, sky: ['#62b6f7', '#bfe7ff'], hills: ['#8edd65', '#5fb944'], ground: 'road',        road: '#555a64', decor: 'trees',     pool: 'ground', lead: 'square',   tempo: 112 },
+  { key: 'moto',       name: 'Мотоцикл!',        say: 'Мотоцикл! Врум-врум!',           fly: false, night: false, speed: 385, sky: ['#ff9e5e', '#ffd6a5'], hills: ['#d88c51', '#a8653a'], ground: 'road',        road: '#5a4a42', decor: 'trees',     pool: 'ground', lead: 'sawtooth', tempo: 122 },
+  { key: 'drone',      name: 'Дрон! Летимо!',    say: 'Дрон! Летимо високо!',           fly: true,  night: false, speed: 320, sky: ['#4ea8de', '#caf0f8'], hills: ['#90e07c', '#62c258'], ground: 'flowers',     road: null,      decor: 'none',      pool: 'drone',  lead: 'triangle', tempo: 102 },
+  { key: 'firetruck',  name: 'Пожежна машина!',  say: 'Пожежна машина! Ту-ту-у!',       fly: false, night: false, speed: 340, sky: ['#73c2fb', '#d6f0ff'], hills: ['#7bc950', '#52a83a'], ground: 'road',        road: '#4f5563', decor: 'city',      pool: 'ground', lead: 'square',   tempo: 118 },
+  { key: 'tractor',    name: 'Трактор!',         say: 'Трактор! Тр-тр-тр!',             fly: false, night: false, speed: 300, sky: ['#8ecae6', '#fff3b0'], hills: ['#a3d977', '#74b94e'], ground: 'road',        road: '#8a6f4d', decor: 'farm',      pool: 'ground', lead: 'sawtooth', tempo: 96  },
+  { key: 'helicopter', name: 'Гелікоптер!',      say: 'Гелікоптер! Летимо над морем!',  fly: true,  night: false, speed: 340, sky: ['#48b5e4', '#d4f1f9'], hills: ['#79c2a8', '#4ea58b'], ground: 'sea',         road: null,      decor: 'none',      pool: 'sea',    lead: 'triangle', tempo: 116 },
+  { key: 'train',      name: 'Поїзд!',           say: 'Поїзд! Чух-чух!',                fly: false, night: false, speed: 310, sky: ['#7fc8f8', '#e3f6ff'], hills: ['#84c887', '#5aa860'], ground: 'rails',       road: '#6b5b4d', decor: 'mountains', pool: 'ground', lead: 'square',   tempo: 100 },
+  { key: 'police',     name: 'Поліція!',         say: 'Поліцейська машинка! Віу-віу!',  fly: false, night: true,  speed: 360, sky: ['#1d2d50', '#4a5d8f'], hills: ['#2c3a5e', '#222d49'], ground: 'road',        road: '#343b50', decor: 'nightcity', pool: 'nightGround', lead: 'sawtooth', tempo: 114 },
+  { key: 'plane',      name: 'Літак!',           say: 'Літак! Вище хмар!',              fly: true,  night: false, speed: 350, sky: ['#56cfe1', '#e0fbfc'], hills: ['#d2ecfa', '#bfe2f5'], ground: 'clouds',      road: null,      decor: 'balloons',  pool: 'plane',  lead: 'triangle', tempo: 110 },
+  { key: 'rocket',     name: 'Ракета!',          say: 'Ракета! Летимо у космос!',       fly: true,  night: true,  speed: 330, sky: ['#141c3f', '#3d5a99'], hills: ['#27355c', '#1c2747'], ground: 'nightmeadow', road: null,      decor: 'none',      pool: 'space',  lead: 'triangle', tempo: 92  },
 ];
 
 /* ---------------- Canvas & world scaling ---------------- */
@@ -203,6 +222,11 @@ const SFX = {
     if (!actx) return; const t = actx.currentTime;
     [88, 91, 96, 100].forEach((m, i) => tone({ freq: hz(m), t: t + i * 0.07, len: 0.14, gain: 0.16 }));
   },
+  wrong()   { if (!actx) return; tone({ freq: 380, freqEnd: 290, t: actx.currentTime, len: 0.25, gain: 0.12 }); },
+  giggle() {
+    if (!actx) return; const t = actx.currentTime;
+    [620, 840, 1040].forEach((f, i) => tone({ freq: f, t: t + i * 0.07, len: 0.09, gain: 0.12 }));
+  },
   splash()  { if (!actx) return; noise({ t: actx.currentTime, len: 0.4, gain: 0.3, fStart: 900, fEnd: 150 }); },
   bark() {
     if (!actx) return; const t = actx.currentTime;
@@ -216,6 +240,25 @@ const SFX = {
     tone({ freq: 600, freqEnd: 900, t, len: 0.25, type: 'triangle', gain: 0.1 });
     tone({ freq: 900, freqEnd: 600, t: t + 0.25, len: 0.25, type: 'triangle', gain: 0.1 });
   },
+  beep(f1 = 880, f2 = 660) {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: f1, t, len: 0.09, type: 'square', gain: 0.12 });
+    tone({ freq: f2, t: t + 0.12, len: 0.12, type: 'square', gain: 0.12 });
+  },
+  vroom()   { if (!actx) return; tone({ freq: 90, freqEnd: 340, t: actx.currentTime, len: 0.35, type: 'sawtooth', gain: 0.18 }); },
+  puttputt() {
+    if (!actx) return; const t = actx.currentTime;
+    [0, 0.13, 0.26].forEach((dt) => tone({ freq: 110, freqEnd: 80, t: t + dt, len: 0.08, type: 'square', gain: 0.14 }));
+  },
+  chooChoo() {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: 740, t, len: 0.28, gain: 0.14 });
+    tone({ freq: 555, t: t + 0.3, len: 0.3, gain: 0.14 });
+    noise({ t, len: 0.15, gain: 0.1, fStart: 2000, fEnd: 800, type: 'bandpass' });
+    noise({ t: t + 0.3, len: 0.15, gain: 0.1, fStart: 2000, fEnd: 800, type: 'bandpass' });
+  },
+  planeWhistle() { if (!actx) return; tone({ freq: 700, freqEnd: 1150, t: actx.currentTime, len: 0.3, gain: 0.12 }); },
+  rumble()  { if (!actx) return; noise({ t: actx.currentTime, len: 0.45, gain: 0.22, fStart: 300, fEnd: 70 }); },
   fanfare() {
     if (!actx) return; const t = actx.currentTime;
     [72, 76, 79, 84].forEach((m, i) =>
@@ -326,6 +369,7 @@ const game = {
   stage: 0,
   collected: 0,
   time: 0,
+  stageT: 0,               // seconds inside the current stage
   scroll: 0,
   speed: 330,
   slowT: 0,                // puddle slowdown timer
@@ -334,7 +378,9 @@ const game = {
   praiseCounter: 0,
   dogToggle: 0,
   comboCount: 0, comboT: 0, trailT: 0,
-  puffT: 0,                // tractor exhaust / rocket flame particle timer
+  puffT: 0,                // exhaust / steam / flame particle timer
+  sunSpinT: 0,             // sun spins fast after being tapped
+  huntDone: false,
 };
 
 const player = {
@@ -342,14 +388,19 @@ const player = {
   onGround: true, airJumps: 0,
   squash: 1, tilt: 0,
 };
+const wagons = [{ y: 0 }, { y: 0 }];  // train wagons lag behind the loco when jumping
 
 const items = [];      // {x, y, kind, r, wob}
 const puddles = [];    // {x, w}
 const particles = [];  // {x, y, vx, vy, life, maxLife, color, r, type}
 const confetti = [];   // {x, y, vx, vy, rot, vr, color, w, h}
 const trail = [];      // rainbow trail dots {x, y, age, hue}
+const floats = [];     // floating count numbers {x, y, text, age, maxAge}
 let dog = null;        // {breed: 0 Sheila | 1 Rey, t}
 let flyby = null;      // decorative drone in ground stages {x, y, dropped}
+let hunt = null;       // number hunt {target, t, promptT, balloons: [{x,y,digit,color,pop}]}
+
+const BALLOON_COLORS = ['#ff8fab', '#7fc8f8', '#ffd670', '#b8e0d2', '#cdb4db'];
 
 const clouds = [];
 for (let i = 0; i < 6; i++) clouds.push({ x: Math.random() * 1600, y: 50 + Math.random() * 160, s: 0.6 + Math.random() * 0.8 });
@@ -360,6 +411,8 @@ const nightStars = [];
 for (let i = 0; i < 44; i++) nightStars.push({ fx: Math.random(), fy: Math.random() * 0.7, ph: Math.random() * 6, r: 1.2 + Math.random() * 1.8 });
 const fireflies = [];
 for (let i = 0; i < 9; i++) fireflies.push({ fx: Math.random(), ph: Math.random() * 6 });
+const airBalloons = [];
+for (let i = 0; i < 3; i++) airBalloons.push({ fx: 0.18 + i * 0.32, y: 130 + Math.random() * 130, ph: Math.random() * 6, c1: BALLOON_COLORS[i], c2: BALLOON_COLORS[(i + 2) % 5] });
 
 let itemTimer = 1.2, puddleTimer = 8, flybyTimer = 12, meteorTimer = 5;
 
@@ -383,7 +436,55 @@ function press() {
     }
   }
 }
-window.addEventListener('pointerdown', (e) => { if (game.state === 'play') { e.preventDefault(); press(); } }, { passive: false });
+
+/* tap toys: honk the vehicle, pet the dog, tickle the sun */
+function honk() {
+  const key = STAGES[game.stage].key;
+  player.squash = 0.78;
+  switch (key) {
+    case 'car': SFX.beep(); break;
+    case 'moto': SFX.vroom(); break;
+    case 'firetruck': case 'police': SFX.siren(); break;
+    case 'tractor': SFX.puttputt(); break;
+    case 'train': SFX.chooChoo(); break;
+    case 'plane': SFX.planeWhistle(); break;
+    case 'rocket': SFX.rumble(); break;
+    default: SFX.whoosh();
+  }
+  if (Math.random() < 0.35) Voice.say(UA.honks[key]);
+}
+function petDog() {
+  SFX.bark();
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x: player.x - 130 + Math.random() * 60 - 30, y: groundY - 70 - Math.random() * 30,
+      vx: Math.random() * 40 - 20, vy: -60 - Math.random() * 40,
+      life: 0.9, maxLife: 0.9, color: '#ff5d8f', r: 6 + Math.random() * 4, type: 'heart',
+    });
+  }
+  if (Math.random() < 0.4) Voice.say(UA.dogNames[dog.breed]);
+}
+function giggleSky() {
+  SFX.giggle();
+  game.sunSpinT = 2;
+  const cfg = STAGES[game.stage];
+  spawnSparkles(worldW * 0.81, cfg.key === 'moto' ? 200 : 120, 12);
+}
+
+window.addEventListener('pointerdown', (e) => {
+  if (game.state !== 'play') return;
+  e.preventDefault();
+  const wx = e.clientX / scale, wy = e.clientY / scale;
+  const cfg = STAGES[game.stage];
+  const py = cfg.fly ? player.y : groundY - 50 + player.y;
+  if (dog && Math.hypot(wx - (player.x - 130), wy - (groundY - 50)) < 85) petDog();
+  else if (Math.hypot(wx - player.x, wy - py) < (cfg.key === 'train' ? 160 : 100)) honk();
+  else {
+    const sx = worldW * 0.81, sy = cfg.key === 'moto' ? 200 : 120;
+    if (Math.hypot(wx - sx, wy - sy) < 85) giggleSky();
+  }
+  press();
+}, { passive: false });
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') { e.preventDefault(); press(); }
@@ -393,32 +494,48 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 /* ---------------- Spawning ---------------- */
 const STAGE_ITEMS = {
-  ground: ['⭐', '⭐', '⭐', '🚗', '🚗', '🧸', '🏀', '🎁'],
-  drone:  ['🎈', '🎈', '🎁', '⭐', '⭐'],
-  space:  ['🌟', '🌟', '🪐', '☄️', '🌙', '🎁'],
+  ground:      ['⭐', '⭐', '⭐', '🚗', '🚗', '🧸', '🏀', '🎁'],
+  nightGround: ['🌟', '🌟', '⭐', '🚗', '🧸', '🎁'],
+  drone:       ['🎈', '🎈', '🎁', '⭐', '⭐'],
+  sea:         ['🐠', '🐠', '⭐', '🎈', '🎁'],
+  plane:       ['🎈', '🪁', '⭐', '🎁', '🎈'],
+  space:       ['🌟', '🌟', '🪐', '☄️', '🌙', '🎁'],
 };
 function pickItemKind() {
   if (Math.random() < 0.15) return '🦴';
-  const cfg = STAGES[game.stage];
-  const pool = cfg.key === 'rocket' ? STAGE_ITEMS.space
-    : cfg.key === 'drone' ? STAGE_ITEMS.drone
-    : STAGE_ITEMS.ground;
+  const pool = STAGE_ITEMS[STAGES[game.stage].pool];
   return pool[(Math.random() * pool.length) | 0];
 }
 
 function spawnItems() {
+  const cfg = STAGES[game.stage];
   const baseX = worldW + 60;
-  if (STAGES[game.stage].fly) {
+  const starKind = cfg.night ? '🌟' : '⭐';
+  if (cfg.fly) {
+    if (Math.random() < 0.15) {
+      /* zigzag of four */
+      const kind = pickItemKind();
+      for (let i = 0; i < 4; i++) {
+        items.push({ x: baseX + i * 75, y: groundY - 160 - (i % 2) * 150 - Math.random() * 40, kind: kind === '🦴' ? starKind : kind, r: 24, wob: i });
+      }
+      return;
+    }
     const y = groundY - 60 - Math.random() * 420;
     items.push({ x: baseX, y, kind: pickItemKind(), r: 24, wob: Math.random() * 6 });
     return;
   }
-  if (Math.random() < 0.3) {
-    // little arc of three stars, reachable with one jump
-    const starKind = STAGES[game.stage].night ? '🌟' : '⭐';
+  const roll = Math.random();
+  if (roll < 0.3) {
+    /* little arc of three stars, reachable with one jump */
     for (let i = 0; i < 3; i++) {
       const y = groundY - 90 - Math.sin((i / 2) * Math.PI) * 110;
       items.push({ x: baseX + i * 70, y, kind: starKind, r: 24, wob: i });
+    }
+  } else if (roll < 0.44) {
+    /* toy parade: a row of four at ground level */
+    const kind = pickItemKind();
+    for (let i = 0; i < 4; i++) {
+      items.push({ x: baseX + i * 72, y: groundY - 48, kind: kind === '🦴' ? starKind : kind, r: 24, wob: i * 0.8 });
     }
   } else {
     const low = Math.random() < 0.55;
@@ -462,18 +579,78 @@ function burstConfetti() {
   }
 }
 
+/* ---------------- Number hunt mini-game ---------------- */
+function startHunt() {
+  const target = 1 + ((Math.random() * 9) | 0);
+  const digitsSet = new Set([target]);
+  while (digitsSet.size < 3) digitsSet.add(1 + ((Math.random() * 9) | 0));
+  const arr = [...digitsSet].sort(() => Math.random() - 0.5);
+  const fly = STAGES[game.stage].fly;
+  const slots = fly
+    ? [groundY - 130, groundY - 290, groundY - 430]
+    : [groundY - 64, groundY - 140, groundY - 205];
+  hunt = {
+    target, t: 0, promptT: 9,
+    balloons: arr.map((d, i) => ({
+      x: worldW + 80 + i * 170, y: slots[i % 3], digit: d,
+      color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
+    })),
+  };
+  game.bannerT = 2.4;
+  game.bannerText = UA.huntBanner(target);
+  Voice.say(UA.huntPrompt(UA.digits[target - 1]), { force: true });
+}
+
+function updateHunt(dt, v, px, py) {
+  hunt.t += dt;
+  hunt.promptT -= dt;
+  if (hunt.promptT <= 0) {
+    hunt.promptT = 9;
+    Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true });
+  }
+  if (hunt.t > 32) { hunt = null; return; }
+  for (const b of hunt.balloons) {
+    if (b.pop > 0) {
+      b.pop -= dt;
+      if (b.pop <= 0) { b.x = worldW + 100 + Math.random() * 140; }
+      continue;
+    }
+    b.x -= v * 0.55 * dt;
+    if (b.x < -60) b.x = worldW + 80;
+    if (Math.hypot(px - b.x, py - b.y) < 72) {
+      if (b.digit === hunt.target) {
+        SFX.combo(); SFX.collect();
+        spawnSparkles(b.x, b.y, 20);
+        floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
+        Voice.say(UA.huntRight(UA.digits[b.digit - 1]), { force: true });
+        game.collected++;
+        hunt = null;
+        if (game.collected >= GOAL) startCelebration();
+        return;
+      }
+      SFX.wrong();
+      spawnPuff(b.x, b.y, b.color, 9);
+      Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true });
+      b.pop = 1.4;
+    }
+  }
+}
+
 /* ---------------- Update ---------------- */
 function collect(it) {
   game.collected++;
   SFX.collect();
   spawnSparkles(it.x, it.y);
+  floats.push({ x: it.x, y: it.y - 16, text: String(game.collected), age: 1.1, maxAge: 1.1 });
 
   /* combo: three collects in quick succession → rainbow trail + praise */
   game.comboCount++;
   game.comboT = 2.5;
+  let comboFired = false;
   if (game.comboCount >= 3) {
     game.comboCount = 0;
     game.trailT = 3;
+    comboFired = true;
     SFX.combo();
     spawnSparkles(it.x, it.y, 18);
     Voice.say(UA.combos[(Math.random() * UA.combos.length) | 0]);
@@ -492,9 +669,14 @@ function collect(it) {
     }
     spawnSparkles(it.x, it.y, 16);
     Voice.say(UA.gift);
-  } else {
+  } else if (!comboFired) {
+    /* count out loud — number learning */
     game.praiseCounter++;
-    if (game.praiseCounter % 2 === 0) Voice.say(UA.praises[(Math.random() * UA.praises.length) | 0]);
+    const num = UA.numbers[game.collected - 1] || '';
+    const txt = game.praiseCounter % 3 === 0
+      ? num + '! ' + UA.praises[(Math.random() * UA.praises.length) | 0]
+      : num + '!';
+    Voice.say(txt);
   }
   if (game.collected >= GOAL) startCelebration();
 }
@@ -502,6 +684,7 @@ function collect(it) {
 function startCelebration() {
   game.state = 'celebrate';
   game.celebT = 5.2;
+  hunt = null;
   burstConfetti();
   SFX.fanfare();
   Voice.say(UA.celebrateSay[(Math.random() * UA.celebrateSay.length) | 0], { force: true });
@@ -512,8 +695,11 @@ function applyStageSound() {
   SFX.humStop();
   const key = STAGES[game.stage].key;
   if (key === 'drone') SFX.humStart(105, 109, 320, 0.05);
+  else if (key === 'helicopter') SFX.humStart(120, 127, 420, 0.05);
+  else if (key === 'plane') SFX.humStart(90, 94, 280, 0.04);
   else if (key === 'rocket') SFX.humStart(52, 55, 200, 0.07);
-  else if (key === 'firetruck') SFX.siren();
+  else if (key === 'firetruck' || key === 'police') SFX.siren();
+  else if (key === 'train') SFX.chooChoo();
 }
 
 function nextStage() {
@@ -524,7 +710,10 @@ function nextStage() {
   game.bannerT = 2.2;
   game.bannerText = cfg.name;
   game.comboCount = 0; game.trailT = 0;
-  items.length = 0; puddles.length = 0; trail.length = 0;
+  game.stageT = 0; game.huntDone = false;
+  items.length = 0; puddles.length = 0; trail.length = 0; floats.length = 0;
+  wagons[0].y = 0; wagons[1].y = 0;
+  hunt = null;
   player.y = cfg.fly ? groundY - 220 : 0;
   player.vy = 0; player.onGround = !cfg.fly;
   applyStageSound();
@@ -537,12 +726,15 @@ function update(dt) {
   if (game.state === 'celebrate') {
     game.celebT -= dt;
     updateParticles(dt);
+    updateFloats(dt);
     if (game.celebT <= 0) nextStage();
     return;
   }
   if (game.state !== 'play') { updateParticles(dt); return; }
 
   const cfg = STAGES[game.stage];
+  game.stageT += dt;
+  if (game.sunSpinT > 0) game.sunSpinT -= dt;
   const speedMul = game.slowT > 0 ? 0.5 : 1;
   if (game.slowT > 0) game.slowT -= dt;
   const v = game.speed * speedMul;
@@ -551,7 +743,7 @@ function update(dt) {
   if (game.comboT > 0) { game.comboT -= dt; if (game.comboT <= 0) game.comboCount = 0; }
 
   /* player physics */
-  player.x = Math.min(240, worldW * 0.3);
+  player.x = cfg.key === 'train' ? Math.min(320, worldW * 0.45) : Math.min(240, worldW * 0.3);
   if (cfg.fly) {
     player.vy = Math.min(player.vy + 1100 * dt, 560);
     player.y += player.vy * dt;
@@ -571,13 +763,21 @@ function update(dt) {
     }
   }
   player.squash += (1 - player.squash) * 8 * dt;
+  /* train wagons lag behind the loco */
+  if (cfg.key === 'train') {
+    wagons[0].y += (player.y - wagons[0].y) * 12 * dt;
+    wagons[1].y += (wagons[0].y - wagons[1].y) * 12 * dt;
+  }
 
-  /* vehicle flavour particles: tractor smoke, rocket flame */
+  /* vehicle flavour particles: tractor smoke, train steam, rocket flame */
   game.puffT -= dt;
   if (game.puffT <= 0) {
     if (cfg.key === 'tractor') {
       spawnPuff(player.x + 18, groundY + player.y - 96, 'rgba(120,120,120,.8)', 1);
       game.puffT = 0.3;
+    } else if (cfg.key === 'train') {
+      spawnPuff(player.x + 35, groundY + player.y - 86, 'rgba(245,245,245,.9)', 1);
+      game.puffT = 0.22;
     } else if (cfg.key === 'rocket') {
       particles.push({
         x: player.x - 58, y: player.y + (Math.random() * 12 - 6),
@@ -592,10 +792,10 @@ function update(dt) {
   }
 
   /* rainbow trail while active */
+  const pyNow = cfg.fly ? player.y : groundY - 46 + player.y;
   if (game.trailT > 0) {
     game.trailT -= dt;
-    const py0 = cfg.fly ? player.y : groundY - 46 + player.y;
-    trail.push({ x: player.x - 40, y: py0, age: 0.6, hue: (game.time * 300) % 360 });
+    trail.push({ x: player.x - 40, y: pyNow, age: 0.6, hue: (game.time * 300) % 360 });
     if (trail.length > 50) trail.shift();
   }
   for (let i = trail.length - 1; i >= 0; i--) {
@@ -604,22 +804,29 @@ function update(dt) {
     if (trail[i].age <= 0) trail.splice(i, 1);
   }
 
+  /* number hunt: one per stage, starts 12 s in */
+  if (!game.huntDone && !hunt && game.stageT > 12) { game.huntDone = true; startHunt(); }
+  if (hunt) updateHunt(dt, v, player.x, pyNow);
+
   /* spawn items / puddles / flyby / meteors */
   itemTimer -= dt;
-  if (itemTimer <= 0) { spawnItems(); itemTimer = 0.85 + Math.random() * 0.8; }
+  if (itemTimer <= 0) {
+    spawnItems();
+    itemTimer = (hunt ? 1.5 : 0.85) + Math.random() * 0.8;
+  }
   if (!cfg.fly) {
     puddleTimer -= dt;
     if (puddleTimer <= 0) { puddles.push({ x: worldW + 80, w: 90 + Math.random() * 50 }); puddleTimer = 7 + Math.random() * 5; }
     flybyTimer -= dt;
     if (flybyTimer <= 0 && !flyby) { flyby = { x: worldW + 80, y: 120 + Math.random() * 80, dropped: false }; flybyTimer = 14 + Math.random() * 8; }
   }
-  if (cfg.night) {
+  if (cfg.key === 'rocket') {
     meteorTimer -= dt;
     if (meteorTimer <= 0) { spawnMeteor(); meteorTimer = 4 + Math.random() * 4; }
   }
 
   /* items: move, magnet, collect */
-  const px = player.x, py = cfg.fly ? player.y : groundY - 46 + player.y;
+  const px = player.x, py = pyNow;
   for (let i = items.length - 1; i >= 0; i--) {
     const it = items[i];
     it.x -= v * dt;
@@ -649,7 +856,7 @@ function update(dt) {
     flyby.x -= (v + 160) * dt;
     if (!flyby.dropped && flyby.x < worldW * 0.75) {
       flyby.dropped = true;
-      items.push({ x: flyby.x, y: flyby.y + 60, kind: '⭐', r: 24, wob: 0 });
+      items.push({ x: flyby.x, y: flyby.y + 60, kind: STAGES[game.stage].night ? '🌟' : '⭐', r: 24, wob: 0 });
     }
     if (flyby.x < -100) flyby = null;
   }
@@ -668,6 +875,15 @@ function update(dt) {
   }
 
   updateParticles(dt);
+  updateFloats(dt);
+}
+
+function updateFloats(dt) {
+  for (let i = floats.length - 1; i >= 0; i--) {
+    floats[i].age -= dt;
+    floats[i].y -= 55 * dt;
+    if (floats[i].age <= 0) floats.splice(i, 1);
+  }
 }
 
 function updateParticles(dt) {
@@ -675,7 +891,7 @@ function updateParticles(dt) {
     const p = particles[i];
     p.life -= dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
-    if (p.type !== 'meteor') p.vy += 300 * dt;
+    if (p.type !== 'meteor' && p.type !== 'heart') p.vy += 300 * dt;
     if (p.life <= 0) particles.splice(i, 1);
   }
   for (let i = confetti.length - 1; i >= 0; i--) {
@@ -707,6 +923,14 @@ function star(cx, cy, r) {
   ctx.closePath();
 }
 
+function heart(x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * 0.9);
+  ctx.bezierCurveTo(x - s * 1.4, y - s * 0.2, x - s * 0.5, y - s * 1.1, x, y - s * 0.3);
+  ctx.bezierCurveTo(x + s * 0.5, y - s * 1.1, x + s * 1.4, y - s * 0.2, x, y + s * 0.9);
+  ctx.closePath();
+}
+
 /* ---- Background ---- */
 function drawBackground() {
   const cfg = STAGES[game.stage];
@@ -715,7 +939,8 @@ function drawBackground() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, worldW, groundY + 2);
 
-  if (cfg.night) drawNightSky();
+  if (cfg.key === 'rocket') drawSpaceSky();
+  else if (cfg.night) drawCityNightSky(cfg);
   else drawSun(cfg);
 
   /* rainbow in drone stage */
@@ -746,26 +971,98 @@ function drawBackground() {
     }
     for (const b of birds) drawBird(b);
   }
+  if (cfg.decor === 'balloons') drawAirBalloons();
+  if (cfg.decor === 'mountains') drawMountains();
 
   /* hills: two parallax layers of humps */
   drawHills(cfg.hills[0], 0.25, 150, 320);
   drawHills(cfg.hills[1], 0.5, 90, 230);
 
-  /* ground band + decor */
-  if (cfg.road) {
-    ctx.fillStyle = '#6cc757';
+  drawGround(cfg);
+
+  /* roadside decor */
+  if (cfg.decor === 'trees') {
+    const ts = 340;
+    for (let x = -((game.scroll * 0.7) % ts) - 50; x < worldW + 100; x += ts) drawTree(x, groundY - 14);
+  } else if (cfg.decor === 'city') {
+    const hs = 320;
+    let k = 0;
+    for (let x = -((game.scroll * 0.7) % hs) - 70; x < worldW + 120; x += hs) drawHouse(x, groundY - 14, k++, false);
+    for (let x = -((game.scroll * 0.7) % hs) - 70 + 160; x < worldW + 120; x += hs) drawTree(x, groundY - 14);
+  } else if (cfg.decor === 'nightcity') {
+    const hs = 320;
+    let k = 0;
+    for (let x = -((game.scroll * 0.7) % hs) - 70; x < worldW + 120; x += hs) drawHouse(x, groundY - 14, k++, true);
+    for (let x = -((game.scroll * 0.7) % hs) - 70 + 160; x < worldW + 120; x += hs) drawStreetlight(x, groundY - 14);
+  } else if (cfg.decor === 'farm') {
+    drawFence();
+    const ss = 230;
+    for (let x = -((game.scroll * 0.7) % ss) - 40; x < worldW + 80; x += ss) drawSunflower(x, groundY - 14);
+    const hs2 = 760;
+    for (let x = -((game.scroll * 0.7) % hs2) - 200; x < worldW + 200; x += hs2) drawHay(x, groundY - 14);
+  } else if (cfg.decor === 'mountains') {
+    const ps = 300;
+    for (let x = -((game.scroll * 0.7) % ps) - 60; x < worldW + 100; x += ps) drawPine(x, groundY - 14);
+  }
+}
+
+function drawGround(cfg) {
+  if (cfg.ground === 'road') {
+    ctx.fillStyle = cfg.night ? '#3c5141' : '#6cc757';
     ctx.fillRect(0, groundY - 14, worldW, 14);
     ctx.fillStyle = cfg.road;
     ctx.fillRect(0, groundY, worldW, worldH - groundY);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = cfg.night ? 'rgba(255,255,255,.8)' : '#fff';
     const dash = 70;
     for (let x = -((game.scroll) % (dash * 2)); x < worldW; x += dash * 2) {
       rr(x, groundY + 34, dash * 0.7, 8, 4); ctx.fill();
     }
-  } else if (cfg.key === 'drone') {
+  } else if (cfg.ground === 'rails') {
+    ctx.fillStyle = '#6cc757';
+    ctx.fillRect(0, groundY - 14, worldW, 14);
+    ctx.fillStyle = cfg.road;
+    ctx.fillRect(0, groundY, worldW, worldH - groundY);
+    /* sleepers + rails */
+    ctx.fillStyle = '#4a3f35';
+    const sp = 46;
+    for (let x = -((game.scroll) % sp); x < worldW; x += sp) {
+      rr(x, groundY + 14, 28, 9, 3); ctx.fill();
+    }
+    ctx.fillStyle = '#c0c6cf';
+    ctx.fillRect(0, groundY + 10, worldW, 5);
+    ctx.fillStyle = 'rgba(192,198,207,.55)';
+    ctx.fillRect(0, groundY + 34, worldW, 4);
+  } else if (cfg.ground === 'flowers') {
     ctx.fillStyle = '#6cc757';
     ctx.fillRect(0, groundY, worldW, worldH - groundY);
     drawFlowers();
+  } else if (cfg.ground === 'sea') {
+    ctx.fillStyle = '#1f7fb8';
+    ctx.fillRect(0, groundY, worldW, worldH - groundY);
+    ctx.strokeStyle = '#5db3dd'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    const ws = 90;
+    for (let x = -((game.scroll * 0.9) % ws); x < worldW + ws; x += ws) {
+      ctx.beginPath(); ctx.arc(x, groundY + 22, 18, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x + 45, groundY + 44, 16, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+    }
+    const bs = 640;
+    for (let x = -((game.scroll * 0.8) % bs) - 100; x < worldW + 150; x += bs) drawSailboat(x, groundY + 16);
+  } else if (cfg.ground === 'clouds') {
+    /* flying above the clouds */
+    ctx.fillStyle = '#dceefb';
+    ctx.fillRect(0, groundY - 6, worldW, worldH - groundY + 6);
+    ctx.fillStyle = '#e9f5fd';
+    const cs2 = 64;
+    for (let x = -((game.scroll * 0.8) % cs2) - 30; x < worldW + cs2; x += cs2) {
+      ctx.beginPath(); ctx.arc(x, groundY + 4, 30, Math.PI, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#ffffff';
+    const cs = 70;
+    for (let x = -((game.scroll) % cs); x < worldW + cs; x += cs) {
+      ctx.beginPath(); ctx.arc(x, groundY + 26, 38, Math.PI, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, groundY + 26, worldW, worldH - groundY - 26);
   } else {
     /* night meadow with fireflies */
     ctx.fillStyle = '#1f3d2b';
@@ -780,33 +1077,16 @@ function drawBackground() {
     }
     ctx.globalAlpha = 1;
   }
-
-  /* roadside decor */
-  if (cfg.decor === 'trees') {
-    const ts = 340;
-    for (let x = -((game.scroll * 0.7) % ts) - 50; x < worldW + 100; x += ts) drawTree(x, groundY - 14);
-  } else if (cfg.decor === 'city') {
-    const hs = 320;
-    let k = 0;
-    for (let x = -((game.scroll * 0.7) % hs) - 70; x < worldW + 120; x += hs) { drawHouse(x, groundY - 14, k++); }
-    const ts2 = 320;
-    for (let x = -((game.scroll * 0.7) % ts2) - 70 + 160; x < worldW + 120; x += ts2) drawTree(x, groundY - 14);
-  } else if (cfg.decor === 'farm') {
-    drawFence();
-    const ss = 230;
-    for (let x = -((game.scroll * 0.7) % ss) - 40; x < worldW + 80; x += ss) drawSunflower(x, groundY - 14);
-    const hs2 = 760;
-    for (let x = -((game.scroll * 0.7) % hs2) - 200; x < worldW + 200; x += hs2) drawHay(x, groundY - 14);
-  }
 }
 
 function drawSun(cfg) {
   const sunset = cfg.key === 'moto';
-  const sunX = worldW * 0.82, sunY = sunset ? 200 : 110;
+  const sunX = worldW * 0.81, sunY = sunset ? 200 : 110;
   const sunR = sunset ? 64 : 48;
+  const spin = game.sunSpinT > 0 ? 2.2 : 0.15;
   ctx.save();
   ctx.translate(sunX, sunY);
-  ctx.rotate(game.time * 0.15);
+  ctx.rotate(game.time * spin);
   ctx.strokeStyle = sunset ? '#ffb24d' : '#ffe066';
   ctx.lineWidth = 7; ctx.lineCap = 'round';
   for (let i = 0; i < 10; i++) {
@@ -826,16 +1106,14 @@ function drawSun(cfg) {
   ctx.beginPath(); ctx.arc(sunX, sunY + sunR * 0.12, sunR * 0.4, 0.25, Math.PI - 0.25); ctx.stroke();
 }
 
-function drawNightSky() {
-  /* twinkling stars */
+function drawSpaceSky() {
   for (const s of nightStars) {
     ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(game.time * 1.8 + s.ph));
     ctx.fillStyle = '#fff';
     ctx.beginPath(); ctx.arc(s.fx * worldW, s.fy * groundY, s.r, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
-  /* moon with craters and soft glow */
-  const mx = worldW * 0.8, my = 130, mr = 52;
+  const mx = worldW * 0.81, my = 130, mr = 52;
   ctx.fillStyle = 'rgba(244,241,222,.18)';
   ctx.beginPath(); ctx.arc(mx, my, mr + 18, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#f4f1de';
@@ -844,12 +1122,10 @@ function drawNightSky() {
   for (const [cx2, cy2, cr] of [[-18, -8, 9], [12, 14, 7], [16, -20, 5]]) {
     ctx.beginPath(); ctx.arc(mx + cx2, my + cy2, cr, 0, Math.PI * 2); ctx.fill();
   }
-  /* friendly sleeping face */
   ctx.strokeStyle = '#8d8a73'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(mx - 16, my + 2, 6, 0.2, Math.PI - 0.2); ctx.stroke();
   ctx.beginPath(); ctx.arc(mx + 8, my + 2, 6, 0.2, Math.PI - 0.2); ctx.stroke();
   ctx.beginPath(); ctx.arc(mx - 4, my + 18, 7, 0.3, Math.PI - 0.3); ctx.stroke();
-  /* faraway planets */
   const p1x = worldW * 0.22, p1y = 170;
   ctx.fillStyle = '#e09f3e';
   ctx.beginPath(); ctx.arc(p1x, p1y, 20, 0, Math.PI * 2); ctx.fill();
@@ -862,6 +1138,22 @@ function drawNightSky() {
   ctx.beginPath(); ctx.arc(worldW * 0.45, 90, 11, 0, Math.PI * 2); ctx.fill();
 }
 
+function drawCityNightSky(cfg) {
+  for (let i = 0; i < 24; i++) {
+    const s = nightStars[i];
+    ctx.globalAlpha = 0.3 + 0.5 * Math.abs(Math.sin(game.time * 1.6 + s.ph));
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(s.fx * worldW, s.fy * groundY * 0.8, s.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  /* crescent moon */
+  const mx = worldW * 0.81, my = 120;
+  ctx.fillStyle = '#f4f1de';
+  ctx.beginPath(); ctx.arc(mx, my, 36, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = cfg.sky[0];
+  ctx.beginPath(); ctx.arc(mx + 15, my - 7, 32, 0, Math.PI * 2); ctx.fill();
+}
+
 function drawBird(b) {
   const flap = Math.sin(game.time * 9 + b.ph) * 7 * b.s;
   ctx.strokeStyle = '#33415c'; ctx.lineWidth = 3.2 * b.s; ctx.lineCap = 'round';
@@ -870,6 +1162,73 @@ function drawBird(b) {
   ctx.quadraticCurveTo(b.x - 4 * b.s, b.y - 6 * b.s, b.x, b.y);
   ctx.quadraticCurveTo(b.x + 4 * b.s, b.y - 6 * b.s, b.x + 11 * b.s, b.y - flap);
   ctx.stroke();
+}
+
+function drawAirBalloons() {
+  for (const ab of airBalloons) {
+    const span = worldW + 260;
+    let x = ab.fx * worldW - game.scroll * 0.12;
+    x = ((x % span) + span) % span - 130;
+    const y = ab.y + Math.sin(game.time * 0.8 + ab.ph) * 10;
+    ctx.fillStyle = ab.c1;
+    ctx.beginPath(); ctx.arc(x, y, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = ab.c2; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.ellipse(x, y, 13, 28, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(90,70,50,.7)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x - 10, y + 24); ctx.lineTo(x - 7, y + 42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 10, y + 24); ctx.lineTo(x + 7, y + 42); ctx.stroke();
+    ctx.fillStyle = '#8a5a2b';
+    rr(x - 9, y + 42, 18, 13, 4); ctx.fill();
+  }
+}
+
+function drawMountains() {
+  const ms = 460;
+  for (let x = -((game.scroll * 0.18) % ms) - 150; x < worldW + 300; x += ms) {
+    ctx.fillStyle = '#8d99ae';
+    ctx.beginPath();
+    ctx.moveTo(x, groundY - 12);
+    ctx.lineTo(x + 150, groundY - 252);
+    ctx.lineTo(x + 300, groundY - 12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(x + 150, groundY - 252);
+    ctx.lineTo(x + 114, groundY - 188);
+    ctx.lineTo(x + 186, groundY - 188);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function drawPine(x, baseY) {
+  ctx.fillStyle = '#8a5a2b';
+  ctx.fillRect(x - 5, baseY - 24, 10, 24);
+  ctx.fillStyle = '#2d6a4f';
+  for (let i = 0; i < 3; i++) {
+    const w = 42 - i * 10, yy = baseY - 24 - i * 24;
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, yy); ctx.lineTo(x, yy - 32); ctx.lineTo(x + w / 2, yy);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function drawSailboat(x, waterY) {
+  const bob = Math.sin(game.time * 1.6 + x * 0.01) * 4;
+  const y = waterY + bob;
+  ctx.fillStyle = '#8a5a2b';
+  ctx.beginPath();
+  ctx.moveTo(x - 30, y); ctx.lineTo(x + 30, y); ctx.lineTo(x + 18, y + 14); ctx.lineTo(x - 18, y + 14);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#5e503f'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 44); ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(x + 2, y - 44); ctx.lineTo(x + 26, y - 6); ctx.lineTo(x + 2, y - 6);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ff595e';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 44); ctx.lineTo(x - 12, y - 38); ctx.lineTo(x, y - 33);
+  ctx.closePath(); ctx.fill();
 }
 
 function drawHills(color, parallax, height, width) {
@@ -885,7 +1244,8 @@ function drawHills(color, parallax, height, width) {
 function drawTree(x, baseY) {
   ctx.fillStyle = '#8a5a2b';
   ctx.fillRect(x - 7, baseY - 56, 14, 56);
-  ctx.fillStyle = STAGES[game.stage].key === 'moto' ? '#7aa84f' : '#3f9c35';
+  const key = STAGES[game.stage].key;
+  ctx.fillStyle = key === 'moto' ? '#7aa84f' : key === 'police' ? '#2c4a3e' : '#3f9c35';
   ctx.beginPath();
   ctx.arc(x, baseY - 78, 34, 0, Math.PI * 2);
   ctx.arc(x - 24, baseY - 58, 24, 0, Math.PI * 2);
@@ -894,19 +1254,32 @@ function drawTree(x, baseY) {
 }
 
 const HOUSE_COLORS = ['#ffb4a2', '#a2d2ff', '#ffe066', '#cdb4db'];
-function drawHouse(x, baseY, k) {
-  const body = HOUSE_COLORS[((k % HOUSE_COLORS.length) + HOUSE_COLORS.length) % HOUSE_COLORS.length];
-  ctx.fillStyle = body;
+const HOUSE_COLORS_NIGHT = ['#8e7d9c', '#6f87a3', '#a3916f', '#7d9684'];
+function drawHouse(x, baseY, k, night) {
+  const palette = night ? HOUSE_COLORS_NIGHT : HOUSE_COLORS;
+  ctx.fillStyle = palette[((k % palette.length) + palette.length) % palette.length];
   ctx.fillRect(x - 38, baseY - 64, 76, 64);
-  ctx.fillStyle = '#e07a5f';
+  ctx.fillStyle = night ? '#5d4a66' : '#e07a5f';
   ctx.beginPath();
   ctx.moveTo(x - 46, baseY - 64); ctx.lineTo(x, baseY - 100); ctx.lineTo(x + 46, baseY - 64);
   ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#8a5a2b';
+  ctx.fillStyle = night ? '#3d3247' : '#8a5a2b';
   ctx.fillRect(x - 10, baseY - 30, 20, 30);
-  ctx.fillStyle = '#bde0fe';
+  ctx.fillStyle = night ? '#ffd966' : '#bde0fe';
   ctx.fillRect(x - 30, baseY - 54, 16, 16);
   ctx.fillRect(x + 14, baseY - 54, 16, 16);
+}
+
+function drawStreetlight(x, baseY) {
+  ctx.fillStyle = '#3a3f58';
+  rr(x - 3, baseY - 86, 6, 86, 3); ctx.fill();
+  rr(x, baseY - 89, 24, 5, 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,217,102,.16)';
+  ctx.beginPath(); ctx.arc(x + 24, baseY - 84, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,217,102,.3)';
+  ctx.beginPath(); ctx.arc(x + 24, baseY - 84, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd966';
+  ctx.beginPath(); ctx.arc(x + 24, baseY - 84, 6, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawFence() {
@@ -1060,22 +1433,17 @@ function drawFireTruck(x, baseY, squash, t) {
   ctx.translate(x, baseY);
   ctx.scale(1, squash);
   const spin = t * 12;
-  /* long red body */
   ctx.fillStyle = '#d62828';
   rr(-82, -58, 116, 44, 10); ctx.fill();
-  /* cab at the front */
   rr(26, -76, 56, 62, 10); ctx.fill();
-  /* white stripe */
   ctx.fillStyle = '#fff';
   rr(-78, -40, 104, 12, 6); ctx.fill();
-  /* ladder on the roof */
   ctx.strokeStyle = '#9aa0ac'; ctx.lineWidth = 4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-74, -70); ctx.lineTo(14, -70); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(-74, -62); ctx.lineTo(14, -62); ctx.stroke();
   for (let lx = -66; lx <= 8; lx += 18) {
     ctx.beginPath(); ctx.moveTo(lx, -70); ctx.lineTo(lx, -62); ctx.stroke();
   }
-  /* windshield with eyes */
   ctx.fillStyle = '#bde0fe';
   rr(34, -72, 42, 22, 8); ctx.fill();
   ctx.fillStyle = '#fff';
@@ -1084,19 +1452,16 @@ function drawFireTruck(x, baseY, squash, t) {
   ctx.fillStyle = '#1d3557';
   ctx.beginPath(); ctx.arc(50, -61, 3.6, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(68, -61, 3.6, 0, Math.PI * 2); ctx.fill();
-  /* flashing beacon */
   const blue = Math.sin(t * 10) > 0;
   ctx.fillStyle = blue ? '#1982c4' : '#ff595e';
   rr(42, -86, 20, 10, 4); ctx.fill();
   ctx.globalAlpha = 0.35;
   ctx.beginPath(); ctx.arc(52, -82, 16, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1;
-  /* smile + headlight */
   ctx.strokeStyle = '#7a1622'; ctx.lineWidth = 4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(72, -28, 10, -0.3, 1.2); ctx.stroke();
   ctx.fillStyle = '#ffe066';
   ctx.beginPath(); ctx.arc(80, -40, 5.5, 0, Math.PI * 2); ctx.fill();
-  /* wheels */
   for (const wx of [-52, 2, 54]) drawWheel(wx, -8, 16, spin);
   ctx.restore();
 }
@@ -1106,78 +1471,225 @@ function drawTractor(x, baseY, squash, t) {
   ctx.translate(x, baseY);
   ctx.scale(1, squash);
   const spin = t * 10;
-  /* exhaust pipe */
   ctx.fillStyle = '#3d405b';
   rr(14, -96, 9, 26, 4); ctx.fill();
-  /* body */
   ctx.fillStyle = '#52b788';
   rr(-44, -54, 96, 32, 10); ctx.fill();
-  /* cabin */
   ctx.fillStyle = '#2d6a4f';
   rr(-36, -88, 48, 38, 9); ctx.fill();
   ctx.fillStyle = '#bde0fe';
   rr(-30, -82, 36, 26, 7); ctx.fill();
-  /* eyes in the cabin window */
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(-18, -69, 6.5, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(-2, -69, 6.5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#1d3557';
   ctx.beginPath(); ctx.arc(-16, -69, 3.4, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(0, -69, 3.4, 0, Math.PI * 2); ctx.fill();
-  /* grille smile + headlight */
   ctx.strokeStyle = '#1b4332'; ctx.lineWidth = 4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(40, -30, 9, -0.3, 1.2); ctx.stroke();
   ctx.fillStyle = '#ffe066';
   ctx.beginPath(); ctx.arc(48, -42, 5.5, 0, Math.PI * 2); ctx.fill();
-  /* big back wheel, small front wheel */
   drawWheel(-26, -22, 26, spin);
   drawWheel(38, -12, 14, spin * 1.6);
   ctx.restore();
 }
 
-function drawRocket(x, y, tilt, t) {
+function drawHelicopter(x, y, tilt, t) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(tilt);
-  /* flame (flickers) */
-  const fl = 26 + Math.sin(t * 30) * 9;
-  ctx.fillStyle = '#ff9500';
-  ctx.beginPath();
-  ctx.moveTo(-50, -11); ctx.lineTo(-50 - fl, 0); ctx.lineTo(-50, 11);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#ffd000';
-  ctx.beginPath();
-  ctx.moveTo(-50, -6); ctx.lineTo(-50 - fl * 0.55, 0); ctx.lineTo(-50, 6);
-  ctx.closePath(); ctx.fill();
-  /* fins */
-  ctx.fillStyle = '#e63946';
-  ctx.beginPath(); ctx.moveTo(-34, -22); ctx.lineTo(-58, -40); ctx.lineTo(-44, -10); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-34, 22); ctx.lineTo(-58, 40); ctx.lineTo(-44, 10); ctx.closePath(); ctx.fill();
+  /* tail boom + fin + tail rotor */
+  ctx.fillStyle = '#fb8500';
+  rr(-82, -12, 48, 11, 5); ctx.fill();
+  rr(-88, -28, 11, 20, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(60,70,90,.5)';
+  ctx.beginPath(); ctx.ellipse(-84, -18, 4, 13 + Math.sin(t * 38) * 3, 0, 0, Math.PI * 2); ctx.fill();
   /* body */
-  ctx.fillStyle = '#f1faee';
-  rr(-50, -24, 100, 48, 24); ctx.fill();
-  /* red band at the tail */
+  ctx.fillStyle = '#ffb703';
+  rr(-40, -20, 80, 42, 19); ctx.fill();
+  /* cockpit window with eyes */
+  ctx.fillStyle = '#bde0fe';
+  rr(4, -14, 32, 24, 10); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(14, -3, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(28, -3, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(16, -3, 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(30, -3, 3.2, 0, Math.PI * 2); ctx.fill();
+  /* smile on the nose */
+  ctx.strokeStyle = '#b76900'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(8, 9, 8, 0.4, Math.PI - 0.7); ctx.stroke();
+  /* rotor mast + main rotor */
+  ctx.fillStyle = '#33415c';
+  rr(-4, -30, 8, 12, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(60,70,90,.45)';
+  ctx.beginPath(); ctx.ellipse(0, -32, 58 + Math.sin(t * 40) * 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+  /* skids */
+  ctx.strokeStyle = '#33415c'; ctx.lineWidth = 5;
+  for (const sx of [-24, 22]) {
+    ctx.beginPath(); ctx.moveTo(sx, 22); ctx.lineTo(sx, 32); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(-34, 32); ctx.lineTo(34, 32); ctx.stroke();
+  if (Math.sin(t * 6) > 0) {
+    ctx.fillStyle = '#ff595e';
+    ctx.beginPath(); ctx.arc(-40, -4, 4.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawTrain(x, baseY, squash, t) {
+  const inPlay = game.state === 'play' && STAGES[game.stage].key === 'train';
+  const spin = t * 11;
+  /* wagons (drawn behind the loco, lagging on jumps) */
+  const wagonColors = ['#1982c4', '#8ac926'];
+  for (let i = 0; i < 2; i++) {
+    const wx = x - 122 - i * 80;
+    const wy = baseY + (inPlay ? (wagons[i].y - player.y) : 0);
+    ctx.save();
+    ctx.translate(wx, wy);
+    ctx.scale(1, squash);
+    ctx.fillStyle = wagonColors[i];
+    rr(-32, -48, 64, 38, 9); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, -29, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2b2d42';
+    ctx.font = '900 22px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(2 - i), 0, -28);
+    drawWheel(-17, -8, 11, spin);
+    drawWheel(17, -8, 11, spin);
+    /* coupling */
+    ctx.strokeStyle = '#4a4e69'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(32, -16); ctx.lineTo(48, -16); ctx.stroke();
+    ctx.restore();
+  }
+  /* locomotive */
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(1, squash);
+  ctx.fillStyle = '#c1121f';
+  rr(-44, -86, 42, 40, 8); ctx.fill();           /* cab */
   ctx.fillStyle = '#e63946';
-  rr(-50, -24, 22, 48, 11); ctx.fill();
-  /* nose cone */
+  rr(-44, -52, 88, 38, 10); ctx.fill();          /* boiler */
+  ctx.fillStyle = '#bde0fe';
+  rr(-38, -80, 30, 22, 6); ctx.fill();           /* cab window */
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-30, -69, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-16, -69, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(-28, -69, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-14, -69, 3, 0, Math.PI * 2); ctx.fill();
+  /* chimney */
+  ctx.fillStyle = '#33415c';
+  rr(26, -82, 15, 30, 5); ctx.fill();
+  rr(21, -86, 25, 9, 4); ctx.fill();
+  /* steam dome */
+  ctx.fillStyle = '#c1121f';
+  ctx.beginPath(); ctx.arc(2, -52, 11, Math.PI, Math.PI * 2); ctx.fill();
+  /* smile + headlight */
+  ctx.strokeStyle = '#7a1622'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(36, -26, 9, -0.3, 1.2); ctx.stroke();
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(44, -40, 6, 0, Math.PI * 2); ctx.fill();
+  /* cow-catcher */
+  ctx.fillStyle = '#9aa0ac';
+  ctx.beginPath();
+  ctx.moveTo(44, -14); ctx.lineTo(58, 0); ctx.lineTo(44, 0);
+  ctx.closePath(); ctx.fill();
+  /* wheels + connecting rod */
+  drawWheel(-22, -14, 20, spin);
+  drawWheel(24, -10, 13, spin * 1.4);
+  const a = spin;
+  ctx.strokeStyle = '#4a4e69'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-22 + Math.cos(a) * 10, -14 + Math.sin(a) * 10);
+  ctx.lineTo(24 + Math.cos(a) * 6.5, -10 + Math.sin(a) * 6.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPolice(x, baseY, squash, t) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(1, squash);
+  const spin = t * 12;
+  ctx.fillStyle = '#f1faee';
+  rr(-70, -52, 140, 38, 16); ctx.fill();
+  rr(-38, -78, 72, 34, 14); ctx.fill();
+  /* blue stripe */
+  ctx.fillStyle = '#1982c4';
+  rr(-70, -44, 140, 14, 7); ctx.fill();
+  /* windshield + eyes */
+  ctx.fillStyle = '#bde0fe';
+  rr(-30, -74, 56, 24, 10); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-8, -62, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(14, -62, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(-5, -62, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(17, -62, 4, 0, Math.PI * 2); ctx.fill();
+  /* light bar: red/blue flashing with glow */
+  ctx.fillStyle = '#33415c';
+  rr(-24, -88, 48, 11, 5); ctx.fill();
+  const phase = Math.sin(t * 12) > 0;
+  ctx.fillStyle = phase ? '#ff595e' : '#5e60ce';
+  rr(-21, -86, 20, 8, 3); ctx.fill();
+  ctx.fillStyle = phase ? '#5e60ce' : '#ff595e';
+  rr(1, -86, 20, 8, 3); ctx.fill();
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = phase ? '#ff595e' : '#5e60ce';
+  ctx.beginPath(); ctx.arc(0, -84, 22, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+  /* gold star badge */
+  star(-18, -33, 10);
+  ctx.fillStyle = '#ffd000'; ctx.fill();
+  /* smile + headlight */
+  ctx.strokeStyle = '#33415c'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(52, -28, 12, -0.4, 1.2); ctx.stroke();
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(64, -42, 6, 0, Math.PI * 2); ctx.fill();
+  for (const wx of [-42, 44]) drawWheel(wx, -8, 17, spin);
+  ctx.restore();
+}
+
+function drawPlane(x, y, tilt, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  /* tail fin + tailplane */
   ctx.fillStyle = '#e63946';
   ctx.beginPath();
-  ctx.moveTo(48, -22); ctx.quadraticCurveTo(86, 0, 48, 22);
+  ctx.moveTo(-50, -12); ctx.lineTo(-64, -40); ctx.lineTo(-40, -14);
   ctx.closePath(); ctx.fill();
+  rr(-60, -8, 20, 7, 3); ctx.fill();
+  /* fuselage */
+  ctx.fillStyle = '#f1faee';
+  rr(-52, -16, 104, 32, 16); ctx.fill();
+  /* blue belly stripe */
+  ctx.fillStyle = '#1982c4';
+  rr(-52, 4, 104, 8, 4); ctx.fill();
+  /* wing */
+  ctx.fillStyle = '#e63946';
+  rr(-18, -4, 46, 11, 5); ctx.fill();
   /* porthole with a happy boy inside */
   ctx.fillStyle = '#1982c4';
-  ctx.beginPath(); ctx.arc(8, 0, 17, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(2, -4, 14, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#bde0fe';
-  ctx.beginPath(); ctx.arc(8, 0, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(2, -4, 11, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#ffd6b1';
-  ctx.beginPath(); ctx.arc(8, 2, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(2, -2, 7.5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#7f5539';
-  ctx.beginPath(); ctx.arc(8, -3, 9, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  ctx.beginPath(); ctx.arc(2, -6, 7.5, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
   ctx.fillStyle = '#1d3557';
-  ctx.beginPath(); ctx.arc(5, 1, 1.6, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(12, 1, 1.6, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#a4502c'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(8, 5, 4, 0.3, Math.PI - 0.3); ctx.stroke();
+  ctx.beginPath(); ctx.arc(-0.5, -3, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(5, -3, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a4502c'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(2, 0.5, 3.4, 0.3, Math.PI - 0.3); ctx.stroke();
+  /* nose spinner + propeller */
+  ctx.fillStyle = '#e63946';
+  ctx.beginPath(); ctx.arc(54, 0, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(60,70,90,.5)';
+  ctx.beginPath(); ctx.ellipse(57, 0, 4, 26 + Math.sin(t * 42) * 5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
@@ -1301,9 +1813,52 @@ function drawVehicle(key, x, groundedY, flyY, squash, tilt, t) {
     case 'moto': drawMoto(x, groundedY, squash, t); break;
     case 'firetruck': drawFireTruck(x, groundedY, squash, t); break;
     case 'tractor': drawTractor(x, groundedY, squash, t); break;
+    case 'train': drawTrain(x, groundedY, squash, t); break;
+    case 'police': drawPolice(x, groundedY, squash, t); break;
     case 'drone': drawDrone(x, flyY, tilt, t); break;
+    case 'helicopter': drawHelicopter(x, flyY, tilt, t); break;
+    case 'plane': drawPlane(x, flyY, tilt, t); break;
     case 'rocket': drawRocket(x, flyY, tilt, t); break;
   }
+}
+
+function drawRocket(x, y, tilt, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  const fl = 26 + Math.sin(t * 30) * 9;
+  ctx.fillStyle = '#ff9500';
+  ctx.beginPath();
+  ctx.moveTo(-50, -11); ctx.lineTo(-50 - fl, 0); ctx.lineTo(-50, 11);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd000';
+  ctx.beginPath();
+  ctx.moveTo(-50, -6); ctx.lineTo(-50 - fl * 0.55, 0); ctx.lineTo(-50, 6);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e63946';
+  ctx.beginPath(); ctx.moveTo(-34, -22); ctx.lineTo(-58, -40); ctx.lineTo(-44, -10); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-34, 22); ctx.lineTo(-58, 40); ctx.lineTo(-44, 10); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f1faee';
+  rr(-50, -24, 100, 48, 24); ctx.fill();
+  ctx.fillStyle = '#e63946';
+  rr(-50, -24, 22, 48, 11); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(48, -22); ctx.quadraticCurveTo(86, 0, 48, 22);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1982c4';
+  ctx.beginPath(); ctx.arc(8, 0, 17, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#bde0fe';
+  ctx.beginPath(); ctx.arc(8, 0, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd6b1';
+  ctx.beginPath(); ctx.arc(8, 2, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#7f5539';
+  ctx.beginPath(); ctx.arc(8, -3, 9, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(5, 1, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(12, 1, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a4502c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(8, 5, 4, 0.3, Math.PI - 0.3); ctx.stroke();
+  ctx.restore();
 }
 
 function drawPlayer() {
@@ -1329,6 +1884,67 @@ function drawItems() {
   }
 }
 
+function drawBalloons() {
+  if (!hunt) return;
+  for (const b of hunt.balloons) {
+    if (b.pop > 0) continue;
+    const bobY = b.y + Math.sin(game.time * 2.4 + b.digit) * 6;
+    /* string */
+    ctx.strokeStyle = 'rgba(90,70,50,.6)'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(b.x, bobY + 32);
+    ctx.quadraticCurveTo(b.x + 6, bobY + 50, b.x - 3, bobY + 66);
+    ctx.stroke();
+    /* balloon */
+    ctx.fillStyle = b.color;
+    ctx.beginPath(); ctx.arc(b.x, bobY, 34, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(b.x - 6, bobY + 32); ctx.lineTo(b.x + 6, bobY + 32); ctx.lineTo(b.x, bobY + 40);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.beginPath(); ctx.ellipse(b.x - 12, bobY - 12, 7, 11, 0.6, 0, Math.PI * 2); ctx.fill();
+    /* digit disc */
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.beginPath(); ctx.arc(b.x, bobY, 21, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2b2d42';
+    ctx.font = '900 30px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(b.digit), b.x, bobY + 1);
+  }
+}
+
+function drawHuntCard() {
+  if (!hunt) return;
+  rr(14, 74, 104, 58, 16);
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.fill();
+  ctx.strokeStyle = '#ffb703'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.font = '26px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🔎', 42, 104);
+  ctx.fillStyle = '#2b2d42';
+  ctx.font = '900 36px system-ui';
+  ctx.fillText(String(hunt.target), 86, 105);
+}
+
+function drawFloats() {
+  for (const f of floats) {
+    const k = 1 + (1 - f.age / f.maxAge) * 0.35;
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.scale(k, k);
+    ctx.globalAlpha = Math.min(1, f.age / 0.35);
+    ctx.font = '900 50px ui-rounded, system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 9; ctx.strokeStyle = '#e85d04'; ctx.lineJoin = 'round';
+    ctx.strokeText(f.text, 0, 0);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(f.text, 0, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
 function drawPuddles() {
   for (const p of puddles) {
     ctx.fillStyle = '#5d9fd6';
@@ -1347,6 +1963,8 @@ function drawParticles() {
     } else if (p.type === 'meteor') {
       ctx.strokeStyle = p.color; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 44, p.y - 14); ctx.stroke();
+    } else if (p.type === 'heart') {
+      heart(p.x, p.y, p.r); ctx.fill();
     } else {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
@@ -1362,47 +1980,48 @@ function drawParticles() {
 }
 
 function drawHUD() {
+  /* numbered star progress — digits help number recognition */
   const n = GOAL, sz = 17, gap = 40;
   const total = (n - 1) * gap;
   const x0 = worldW / 2 - total / 2;
   const y = 42;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (let i = 0; i < n; i++) {
     const filled = i < game.collected;
-    star(x0 + i * gap, y, filled ? sz : sz * 0.8);
+    star(x0 + i * gap, y, filled ? sz : sz * 0.85);
     ctx.fillStyle = filled ? '#ffd000' : 'rgba(255,255,255,.45)';
     ctx.fill();
     if (filled) { ctx.strokeStyle = '#e09f00'; ctx.lineWidth = 2.5; ctx.stroke(); }
+    ctx.fillStyle = filled ? '#7a4f01' : 'rgba(255,255,255,.95)';
+    ctx.font = '800 13px system-ui';
+    ctx.fillText(String(i + 1), x0 + i * gap, y + 2);
   }
+}
+
+function drawOutlinedText(text, x, y, size, fill, stroke, pulse) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.font = '900 ' + size + 'px ui-rounded, system-ui';
+  const w = ctx.measureText(text).width;
+  const fit = Math.min(1, (worldW - 60) / w);
+  ctx.scale(pulse * fit, pulse * fit);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = size * 0.19; ctx.strokeStyle = stroke; ctx.lineJoin = 'round';
+  ctx.strokeText(text, 0, 0);
+  ctx.fillStyle = fill;
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
 }
 
 function drawBanner() {
   if (game.bannerT <= 0) return;
   const k = Math.min(1, (2.2 - game.bannerT) * 4);
-  ctx.save();
-  ctx.translate(worldW / 2, worldH * 0.3);
-  ctx.scale(k, k);
-  ctx.font = '900 64px ui-rounded, system-ui';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 12; ctx.strokeStyle = '#1d6fb8'; ctx.lineJoin = 'round';
-  ctx.strokeText(game.bannerText, 0, 0);
-  ctx.fillStyle = '#fff';
-  ctx.fillText(game.bannerText, 0, 0);
-  ctx.restore();
+  drawOutlinedText(game.bannerText, worldW / 2, worldH * 0.3, 64, '#fff', '#1d6fb8', k);
 }
 
 function drawCelebration() {
   const t = game.time;
-  const k = 1 + Math.sin(t * 5) * 0.04;
-  ctx.save();
-  ctx.translate(worldW / 2, worldH * 0.22);
-  ctx.scale(k, k);
-  ctx.font = '900 56px ui-rounded, system-ui';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 12; ctx.strokeStyle = '#c46a00'; ctx.lineJoin = 'round';
-  ctx.strokeText(UA.celebrate, 0, 0);
-  ctx.fillStyle = '#ffd000';
-  ctx.fillText(UA.celebrate, 0, 0);
-  ctx.restore();
+  drawOutlinedText(UA.celebrate, worldW / 2, worldH * 0.22, 56, '#ffd000', '#c46a00', 1 + Math.sin(t * 5) * 0.04);
 
   const cx = worldW / 2;
   const labels = [UA.names.dad, UA.names.mom, UA.names.sis, UA.names.dog1, UA.names.dog2];
@@ -1458,15 +2077,19 @@ function frame(now) {
   if (game.state === 'celebrate') {
     drawCelebration();
     drawParticles();
+    drawFloats();
   } else if (game.state === 'play') {
     drawPuddles();
     drawFlyby();
     drawTrail();
     drawItems();
+    drawBalloons();
     drawDog();
     drawPlayer();
     drawParticles();
+    drawFloats();
     drawHUD();
+    drawHuntCard();
     drawBanner();
   }
   requestAnimationFrame(frame);
@@ -1486,6 +2109,8 @@ document.getElementById('playBtn').addEventListener('click', () => {
   game.speed = STAGES[game.stage].speed;
   game.bannerT = 2.2;
   game.bannerText = STAGES[game.stage].name;
+  game.stageT = 0;
+  game.huntDone = false;
   Voice.say(UA.greeting, { force: true });
 });
 

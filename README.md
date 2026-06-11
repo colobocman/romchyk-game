@@ -9,19 +9,32 @@ drones, and his two huskies. No install, no build, no dependencies — a single
 ## How to play
 
 - Tap anywhere on the screen (or press Space / Arrow Up on a keyboard).
-- Ground vehicles (red race car, motorcycle, fire truck, tractor): tap to
-  jump (a second tap in the air gives a little double-jump). Collect toys,
-  stars, and balls.
-- Flying vehicles (drone, night rocket): tap to fly up, release to float down.
-- Collecting a bone calls one of the huskies — Sheila (grey) or Rey (white) —
-  to run alongside.
-- Gifts burst into bonus stars. Three quick collects in a row earn a rainbow
-  trail and extra praise.
+- Ground vehicles: tap to jump (a second tap in the air gives a little
+  double-jump). Flying vehicles: tap to fly up, release to float down.
+- Ten stages rotate forever: race car (meadow) → motorcycle (sunset) →
+  drone (rainbow sky) → fire truck (town) → tractor (farm) → helicopter
+  (sea with sailboats) → train with numbered wagons (mountains) → police car
+  (night city) → plane (above the clouds, hot-air balloons) → rocket (night
+  space with moon and planets).
 - Every 10 stars: confetti celebration with the whole family (Tato, Mama,
-  Darynka, and both dogs), then the next vehicle. Six stages rotate forever:
-  car (meadow) → motorcycle (sunset) → drone (rainbow sky) → fire truck
-  (town) → tractor (farm) → rocket (night space with moon and planets).
+  Darynka, and both dogs), then the next vehicle.
 - There is no way to lose. Puddles just splash and slow you down for a moment.
+
+### Number learning
+
+- The game counts every collected toy out loud in Ukrainian (1 to 10), a big
+  digit pops on screen, and the progress stars are numbered 1–10.
+- Once per stage, a "find the number" mini-game starts: the voice asks for a
+  digit and three numbered balloons float by. The right one earns a star and
+  praise; a wrong one gently names itself and asks again.
+
+### Tap toys
+
+- Tap the vehicle: it honks its own sound (beep, vroom, siren, choo-choo…).
+- Tap a running husky: bark and floating hearts.
+- Tap the sun or the moon: a giggle and fast-spinning sun rays.
+- Bones call Sheila or Rey to run alongside. Gifts burst into bonus stars.
+  Three quick collects in a row earn a rainbow trail and extra praise.
 
 ## Features
 

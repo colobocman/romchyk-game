@@ -22,15 +22,43 @@ for a small child: one input, no fail state, frequent rewards.
 ## Core loop
 
 1. Vehicle auto-drives to the right through a scrolling world.
-2. Tap = jump (ground vehicles) or fly up (drone, rocket). Generous magnet
+2. Tap = jump (ground vehicles) or fly up (flying vehicles). Generous magnet
    pulls nearby collectibles in, so timing barely matters.
 3. Collect 10 items → celebration: confetti, fanfare, the family cheers
    (Tato, Mama, little sister Darynka, huskies Sheila and Rey), voice praise.
-4. Six stages rotate forever: red race car (day meadow) → motorcycle
-   (sunset hills) → drone (rainbow sky, flowers) → fire truck (town with
-   houses, flashing beacon, siren jingle) → tractor (farm: fence,
-   sunflowers, hay, exhaust puffs) → rocket (night space: sleeping moon,
-   planets, twinkling stars, meteors, fireflies).
+4. Ten stages rotate forever (v3): red race car (day meadow) → motorcycle
+   (sunset hills) → drone (rainbow sky, flowers) → fire truck (town,
+   flashing beacon, siren) → tractor (farm: fence, sunflowers, hay) →
+   helicopter (sea: waves, sailboats) → train with numbered wagons
+   (mountains, rails, steam) → police car (night city: lit windows,
+   streetlights, crescent moon) → plane (above cloud tops, hot-air
+   balloons) → rocket (night space: sleeping moon, planets, meteors,
+   fireflies).
+
+## Number learning (v3)
+
+Romchyk recognizes digits well, so numbers are woven into the core loop:
+
+- Every collect is counted out loud in Ukrainian («Один!», «Два!»…) with a
+  big digit popping at the collection point; every third count appends a
+  praise phrase. The HUD progress stars are numbered 1–10.
+- Train wagons carry big visible numbers.
+- Number hunt mini-game, once per stage (~12 s in): the voice asks «Знайди
+  цифру N!» (banner shows the numeral), three numbered balloons drift by
+  (no magnet — the child must steer into one). Correct → jingle, praise
+  with the digit name, +1 star. Wrong → soft pop, the voice names the wrong
+  digit and repeats the question; the balloon respawns. The hunt repeats its
+  prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
+
+## Tap interactivity (v3)
+
+Cause-and-effect toys on top of the one-button core (the tap still jumps):
+
+- Tap the vehicle → vehicle-specific honk (beep, vroom, siren, putt-putt,
+  choo-choo, whistle, rumble) + squash bounce, sometimes a spoken word
+  («Бі-бі!», «Чух-чух!»).
+- Tap the running husky → bark + floating hearts, sometimes her name.
+- Tap the sun/moon → giggle arpeggio + sun rays spin fast for 2 s.
 
 Special collectibles and rewards (v2):
 - A bone summons a husky (alternating Sheila/Rey) to run alongside for a few
