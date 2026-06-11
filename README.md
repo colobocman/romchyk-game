@@ -18,7 +18,13 @@ drones, and his two huskies. No install, no build, no dependencies — a single
   space with moon and planets).
 - Every 10 stars: confetti celebration with the whole family (Tato, Mama,
   Darynka, and both dogs), then the next vehicle.
-- There is no way to lose. Puddles just splash and slow you down for a moment.
+- There is no way to lose. Puddles just splash and slow you down for a
+  moment, and every vehicle has its own funny obstacle: traffic cones that
+  bounce away, a hay bale that bursts into straw, a cow that leaps over the
+  train with a startled moo, grumpy thunderclouds, and crumbling asteroids.
+- Every stage opens with a spoken 1-2-3 countdown, the lightning bolt (⚡)
+  gives a turbo boost with wind streaks, the world gradually speeds up as
+  stars are collected, and celebrations end with fireworks.
 
 ### Number learning
 

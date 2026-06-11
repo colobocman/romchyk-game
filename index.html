@@ -119,6 +119,12 @@ const UA = {
   puddle: 'Ой, калюжа!',
   dogJoin: ['Шейла біжить з тобою!', 'Рей біжить з тобою!'],
   dogNames: ['Шейла!', 'Рей!'],
+  countdownShow: ['1', '2', '3', 'Поїхали!'],
+  countdownSay: ['Раз!', 'Два!', 'Три!', 'Поїхали!'],
+  turbo: ['Турбо!', 'Як блискавка!', 'Вжух! Швидко!'],
+  bump: ['Оп!', 'Ой-ой!', 'Ха-ха!'],
+  moo: 'Му-у!',
+  kid: 'Ромчик',
   honks: {
     car: 'Бі-бі!', moto: 'Врум!', drone: 'Вжух!', firetruck: 'Ту-ту!',
     tractor: 'Тр-тр-тр!', helicopter: 'Вжух-вжух!', train: 'Чух-чух!',
@@ -259,6 +265,28 @@ const SFX = {
   },
   planeWhistle() { if (!actx) return; tone({ freq: 700, freqEnd: 1150, t: actx.currentTime, len: 0.3, gain: 0.12 }); },
   rumble()  { if (!actx) return; noise({ t: actx.currentTime, len: 0.45, gain: 0.22, fStart: 300, fEnd: 70 }); },
+  boing()   { if (!actx) return; tone({ freq: 320, freqEnd: 90, t: actx.currentTime, len: 0.25, type: 'sine', gain: 0.2 }); },
+  moo() {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: 200, freqEnd: 140, t, len: 0.38, type: 'sawtooth', gain: 0.13 });
+    tone({ freq: 160, freqEnd: 105, t: t + 0.05, len: 0.42, type: 'sine', gain: 0.12 });
+  },
+  bzzt() {
+    if (!actx) return;
+    tone({ freq: 110, t: actx.currentTime, len: 0.16, type: 'sawtooth', gain: 0.14 });
+    noise({ t: actx.currentTime, len: 0.1, gain: 0.07, fStart: 3000, fEnd: 1200, type: 'bandpass' });
+  },
+  rustle()  { if (!actx) return; noise({ t: actx.currentTime, len: 0.3, gain: 0.18, fStart: 1400, fEnd: 300 }); },
+  turbo() {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: 200, freqEnd: 980, t, len: 0.4, type: 'sawtooth', gain: 0.14 });
+    noise({ t, len: 0.45, gain: 0.12, fStart: 600, fEnd: 2400, type: 'bandpass' });
+  },
+  firework() {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: 520, freqEnd: 130, t, len: 0.16, type: 'sine', gain: 0.16 });
+    noise({ t: t + 0.1, len: 0.3, gain: 0.12, fStart: 5000, fEnd: 1500, type: 'highpass' });
+  },
   fanfare() {
     if (!actx) return; const t = actx.currentTime;
     [72, 76, 79, 84].forEach((m, i) =>
@@ -287,16 +315,23 @@ const SFX = {
 
 /* Cheerful 4-bar chiptune loop (C pentatonic), per-stage flavour. */
 const Music = {
-  step: 0, nextT: 0, timer: null,
+  step: 0, nextT: 0, timer: null, section: 0,
   melody: [
     72, null, 76, null, 79, null, 76, 74,
     74, null, 76, null, 72, null, 69, null,
     69, 69, 72, null, 74, null, 76, null,
     79, 76, 74, 72, 74, null, 72, null,
   ],
+  /* B section keeps the song fresh on long rides */
+  melodyB: [
+    79, null, 76, null, 74, 76, 79, null,
+    84, null, 79, null, 76, null, 74, null,
+    72, 74, 76, null, 79, 76, 74, 72,
+    69, null, 72, null, 74, 76, 72, null,
+  ],
   bass: [48, 43, 45, 41],
   start() {
-    this.step = 0; this.nextT = actx.currentTime + 0.15;
+    this.step = 0; this.section = 0; this.nextT = actx.currentTime + 0.15;
     this.timer = setInterval(() => this.tick(), 90);
   },
   tick() {
@@ -306,10 +341,11 @@ const Music = {
       this.schedule(this.step, this.nextT, spb);
       this.nextT += spb;
       this.step = (this.step + 1) % 32;
+      if (this.step === 0) this.section++;
     }
   },
   schedule(step, t, spb) {
-    const m = this.melody[step];
+    const m = (this.section % 2 ? this.melodyB : this.melody)[step];
     if (m !== null) tone({ freq: hz(m), t, len: spb * 0.92, type: STAGES[game.stage].lead, gain: 0.05, dest: musicGain });
     const sb = step % 8;
     if (sb === 0 || sb === 4) {
@@ -380,7 +416,10 @@ const game = {
   comboCount: 0, comboT: 0, trailT: 0,
   puffT: 0,                // exhaust / steam / flame particle timer
   sunSpinT: 0,             // sun spins fast after being tapped
-  huntDone: false,
+  huntCount: 0,            // number hunts started this stage (max 2)
+  countT: 0, countIdx: -2, // ready-set-go countdown
+  turboT: 0,               // lightning-bolt turbo boost
+  celebFwT: 0,             // fireworks timer during celebration
 };
 
 const player = {
@@ -399,6 +438,15 @@ const floats = [];     // floating count numbers {x, y, text, age, maxAge}
 let dog = null;        // {breed: 0 Sheila | 1 Rey, t}
 let flyby = null;      // decorative drone in ground stages {x, y, dropped}
 let hunt = null;       // number hunt {target, t, promptT, balloons: [{x,y,digit,color,pop}]}
+const obstacles = [];  // {type, x, y, vy, rot, hit, flash}
+
+/* funny no-fail obstacles per vehicle */
+const OBSTACLE_BY_KEY = {
+  car: 'cone', moto: 'cone', firetruck: 'cone', police: 'cone',
+  tractor: 'hay', train: 'cow',
+  drone: 'cloud', helicopter: 'cloud', plane: 'cloud',
+  rocket: 'asteroid',
+};
 
 const BALLOON_COLORS = ['#ff8fab', '#7fc8f8', '#ffd670', '#b8e0d2', '#cdb4db'];
 
@@ -414,7 +462,7 @@ for (let i = 0; i < 9; i++) fireflies.push({ fx: Math.random(), ph: Math.random(
 const airBalloons = [];
 for (let i = 0; i < 3; i++) airBalloons.push({ fx: 0.18 + i * 0.32, y: 130 + Math.random() * 130, ph: Math.random() * 6, c1: BALLOON_COLORS[i], c2: BALLOON_COLORS[(i + 2) % 5] });
 
-let itemTimer = 1.2, puddleTimer = 8, flybyTimer = 12, meteorTimer = 5;
+let itemTimer = 1.2, puddleTimer = 8, flybyTimer = 12, meteorTimer = 5, obstacleTimer = 9;
 
 /* ---------------- Input ---------------- */
 function press() {
@@ -494,12 +542,12 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 /* ---------------- Spawning ---------------- */
 const STAGE_ITEMS = {
-  ground:      ['⭐', '⭐', '⭐', '🚗', '🚗', '🧸', '🏀', '🎁'],
-  nightGround: ['🌟', '🌟', '⭐', '🚗', '🧸', '🎁'],
-  drone:       ['🎈', '🎈', '🎁', '⭐', '⭐'],
-  sea:         ['🐠', '🐠', '⭐', '🎈', '🎁'],
-  plane:       ['🎈', '🪁', '⭐', '🎁', '🎈'],
-  space:       ['🌟', '🌟', '🪐', '☄️', '🌙', '🎁'],
+  ground:      ['⭐', '⭐', '⭐', '🚗', '🚗', '🧸', '🏀', '🎁', '⚡'],
+  nightGround: ['🌟', '🌟', '⭐', '🚗', '🧸', '🎁', '⚡'],
+  drone:       ['🎈', '🎈', '🎁', '⭐', '⭐', '⚡'],
+  sea:         ['🐠', '🐠', '⭐', '🎈', '🎁', '⚡'],
+  plane:       ['🎈', '🪁', '⭐', '🎁', '🎈', '⚡'],
+  space:       ['🌟', '🌟', '🪐', '☄️', '🌙', '🎁', '⚡'],
 };
 function pickItemKind() {
   if (Math.random() < 0.15) return '🦴';
@@ -636,6 +684,90 @@ function updateHunt(dt, v, px, py) {
   }
 }
 
+/* ---------------- Funny obstacles ---------------- */
+function spawnObstacle() {
+  const cfg = STAGES[game.stage];
+  const type = OBSTACLE_BY_KEY[cfg.key];
+  if (!type) return;
+  if (type === 'cloud' || type === 'asteroid') {
+    obstacles.push({ type, x: worldW + 80, y: groundY - 120 - Math.random() * 330, vy: 0, rot: Math.random() * 6, hit: false, flash: 0 });
+  } else {
+    obstacles.push({ type, x: worldW + 80, y: 0, vy: 0, rot: 0, hit: false, flash: 0 });
+  }
+}
+
+function bumpVoice() {
+  if (Math.random() < 0.4) Voice.say(UA.bump[(Math.random() * UA.bump.length) | 0]);
+}
+
+function updateObstacles(dt, v, px, py) {
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const ob = obstacles[i];
+    ob.x -= (ob.type === 'cloud' ? v * 0.8 : v) * dt;
+    if (ob.flash > 0) ob.flash -= dt;
+    if (ob.type === 'asteroid') ob.rot += dt * 1.3;
+    /* cow leap physics after being startled */
+    if (ob.type === 'cow' && ob.hit) {
+      ob.vy += 2400 * dt;
+      ob.y = Math.min(ob.y + ob.vy * dt, 0);
+    }
+    if (ob.x < -160) { obstacles.splice(i, 1); continue; }
+    if (ob.hit) continue;
+
+    if (ob.type === 'cone' || ob.type === 'hay') {
+      if (player.onGround && Math.abs(ob.x - px) < 42) {
+        ob.hit = true;
+        game.slowT = 0.8;
+        if (ob.type === 'cone') {
+          SFX.boing();
+          for (let c = 0; c < 3; c++) {
+            particles.push({
+              x: ob.x + c * 14 - 14, y: groundY - 16,
+              vx: 120 + Math.random() * 200, vy: -260 - Math.random() * 160,
+              life: 0.9, maxLife: 0.9, color: '#ff7b00', r: 11,
+              type: 'cone', rot: Math.random() * 6, vr: 6 + Math.random() * 6,
+            });
+          }
+        } else {
+          SFX.rustle();
+          for (let s = 0; s < 16; s++) {
+            spawnPuff(ob.x, groundY - 20 - Math.random() * 20, s % 2 ? '#e9c46a' : '#ffd97d', 1);
+          }
+        }
+        spawnPuff(ob.x, groundY - 10, '#d9c79e', 5);
+        bumpVoice();
+        obstacles.splice(i, 1);
+      }
+    } else if (ob.type === 'cow') {
+      if (Math.abs(ob.x - px) < 60) {
+        /* the cow leaps over the train in a comic panic — no slowdown */
+        ob.hit = true;
+        ob.vy = -720;
+        SFX.moo();
+        if (Math.random() < 0.5) Voice.say(UA.moo);
+      }
+    } else if (ob.type === 'cloud') {
+      if (Math.hypot(ob.x - px, ob.y - py) < 62) {
+        ob.hit = true;
+        ob.flash = 0.5;
+        player.vy = 340;
+        game.slowT = 0.6;
+        SFX.bzzt();
+        bumpVoice();
+      }
+    } else if (ob.type === 'asteroid') {
+      if (Math.hypot(ob.x - px, ob.y - py) < 56) {
+        SFX.rumble();
+        game.slowT = 0.6;
+        spawnSparkles(ob.x, ob.y, 14);
+        for (let s = 0; s < 8; s++) spawnPuff(ob.x, ob.y, '#9a8c98', 1);
+        bumpVoice();
+        obstacles.splice(i, 1);
+      }
+    }
+  }
+}
+
 /* ---------------- Update ---------------- */
 function collect(it) {
   game.collected++;
@@ -656,7 +788,12 @@ function collect(it) {
     Voice.say(UA.combos[(Math.random() * UA.combos.length) | 0]);
   }
 
-  if (it.kind === '🦴') {
+  if (it.kind === '⚡') {
+    /* turbo boost: faster world, wind streaks, rainbow trail */
+    game.turboT = 4.2;
+    SFX.turbo();
+    Voice.say(UA.turbo[(Math.random() * UA.turbo.length) | 0], { force: true });
+  } else if (it.kind === '🦴') {
     game.dogToggle = 1 - game.dogToggle;
     dog = { breed: game.dogToggle, t: 8 };
     SFX.bark();
@@ -683,8 +820,10 @@ function collect(it) {
 
 function startCelebration() {
   game.state = 'celebrate';
-  game.celebT = 5.2;
+  game.celebT = 6.8;
+  game.celebFwT = 0.5;
   hunt = null;
+  obstacles.length = 0;
   burstConfetti();
   SFX.fanfare();
   Voice.say(UA.celebrateSay[(Math.random() * UA.celebrateSay.length) | 0], { force: true });
@@ -709,9 +848,11 @@ function nextStage() {
   game.speed = cfg.speed;
   game.bannerT = 2.2;
   game.bannerText = cfg.name;
-  game.comboCount = 0; game.trailT = 0;
-  game.stageT = 0; game.huntDone = false;
+  game.comboCount = 0; game.trailT = 0; game.turboT = 0;
+  game.stageT = 0; game.huntCount = 0;
+  game.countT = 4.6; game.countIdx = -2;
   items.length = 0; puddles.length = 0; trail.length = 0; floats.length = 0;
+  obstacles.length = 0;
   wagons[0].y = 0; wagons[1].y = 0;
   hunt = null;
   player.y = cfg.fly ? groundY - 220 : 0;
@@ -725,6 +866,22 @@ function update(dt) {
   game.time += dt;
   if (game.state === 'celebrate') {
     game.celebT -= dt;
+    /* fireworks pop during the whole celebration */
+    game.celebFwT -= dt;
+    if (game.celebFwT <= 0) {
+      game.celebFwT = 0.9 + Math.random() * 0.6;
+      const fx = worldW * (0.15 + Math.random() * 0.7);
+      const fy = worldH * (0.12 + Math.random() * 0.3);
+      const col = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#ff8fab'][(Math.random() * 5) | 0];
+      for (let i = 0; i < 26; i++) {
+        const a = (i / 26) * Math.PI * 2, sp = 130 + Math.random() * 110;
+        particles.push({
+          x: fx, y: fy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: 0.8, maxLife: 0.8, color: col, r: 3.5 + Math.random() * 3, type: 'spark',
+        });
+      }
+      SFX.firework();
+    }
     updateParticles(dt);
     updateFloats(dt);
     if (game.celebT <= 0) nextStage();
@@ -733,12 +890,49 @@ function update(dt) {
   if (game.state !== 'play') { updateParticles(dt); return; }
 
   const cfg = STAGES[game.stage];
+
+  /* ready-set-go countdown: world frozen, vehicle can hop in place */
+  if (game.countT > 0) {
+    game.countT -= dt;
+    const idx = game.countT > 3.6 ? -1 : game.countT > 2.6 ? 0 : game.countT > 1.6 ? 1 : game.countT > 0.6 ? 2 : 3;
+    if (idx !== game.countIdx && idx >= 0) {
+      game.countIdx = idx;
+      Voice.say(UA.countdownSay[idx], { force: idx === 3 });
+      if (idx === 3) SFX.combo(); else SFX.collect();
+    }
+    if (!cfg.fly && !player.onGround) {
+      player.vy += 2800 * dt;
+      player.y += player.vy * dt;
+      if (player.y >= 0) { player.y = 0; player.vy = 0; player.onGround = true; player.squash = 0.8; }
+    }
+    if (cfg.fly) {
+      player.vy = Math.min(player.vy + 1100 * dt, 560);
+      player.y = Math.max(Math.min(player.y + player.vy * dt, groundY - 36), 80);
+    }
+    player.squash += (1 - player.squash) * 8 * dt;
+    updateParticles(dt);
+    return;
+  }
+
   game.stageT += dt;
   if (game.sunSpinT > 0) game.sunSpinT -= dt;
   const speedMul = game.slowT > 0 ? 0.5 : 1;
   if (game.slowT > 0) game.slowT -= dt;
-  const v = game.speed * speedMul;
+  if (game.turboT > 0) game.turboT -= dt;
+  const turboMul = game.turboT > 0 ? 1.55 : 1;
+  /* gets a little faster with every star — more dynamic toward the goal */
+  const v = game.speed * speedMul * turboMul * (1 + game.collected * 0.015);
   game.scroll += v * dt;
+  /* turbo wind streaks across the screen */
+  if (game.turboT > 0) {
+    for (let w = 0; w < 2; w++) {
+      particles.push({
+        x: worldW + 20, y: Math.random() * groundY,
+        vx: -(v * 2 + 400), vy: 0,
+        life: 0.3, maxLife: 0.3, color: 'rgba(255,255,255,.7)', r: 2, type: 'wind',
+      });
+    }
+  }
   if (game.bannerT > 0) game.bannerT -= dt;
   if (game.comboT > 0) { game.comboT -= dt; if (game.comboT <= 0) game.comboCount = 0; }
 
@@ -791,10 +985,10 @@ function update(dt) {
     }
   }
 
-  /* rainbow trail while active */
+  /* rainbow trail while combo or turbo is active */
   const pyNow = cfg.fly ? player.y : groundY - 46 + player.y;
-  if (game.trailT > 0) {
-    game.trailT -= dt;
+  if (game.trailT > 0) game.trailT -= dt;
+  if (game.trailT > 0 || game.turboT > 0) {
     trail.push({ x: player.x - 40, y: pyNow, age: 0.6, hue: (game.time * 300) % 360 });
     if (trail.length > 50) trail.shift();
   }
@@ -804,19 +998,29 @@ function update(dt) {
     if (trail[i].age <= 0) trail.splice(i, 1);
   }
 
-  /* number hunt: one per stage, starts 12 s in */
-  if (!game.huntDone && !hunt && game.stageT > 12) { game.huntDone = true; startHunt(); }
+  /* number hunts: two per stage, at ~12 s and ~34 s */
+  if (!hunt && ((game.huntCount === 0 && game.stageT > 12) || (game.huntCount === 1 && game.stageT > 34))) {
+    game.huntCount++;
+    startHunt();
+  }
   if (hunt) updateHunt(dt, v, player.x, pyNow);
+
+  /* funny obstacles */
+  obstacleTimer -= dt;
+  if (obstacleTimer <= 0) { spawnObstacle(); obstacleTimer = 7 + Math.random() * 4; }
+  updateObstacles(dt, v, player.x, pyNow);
 
   /* spawn items / puddles / flyby / meteors */
   itemTimer -= dt;
   if (itemTimer <= 0) {
     spawnItems();
-    itemTimer = (hunt ? 1.5 : 0.85) + Math.random() * 0.8;
+    itemTimer = (hunt ? 1.6 : 1.0) + Math.random() * 0.9;
+  }
+  if (cfg.ground === 'road') {
+    puddleTimer -= dt;
+    if (puddleTimer <= 0) { puddles.push({ x: worldW + 80, w: 90 + Math.random() * 50 }); puddleTimer = 8 + Math.random() * 5; }
   }
   if (!cfg.fly) {
-    puddleTimer -= dt;
-    if (puddleTimer <= 0) { puddles.push({ x: worldW + 80, w: 90 + Math.random() * 50 }); puddleTimer = 7 + Math.random() * 5; }
     flybyTimer -= dt;
     if (flybyTimer <= 0 && !flyby) { flyby = { x: worldW + 80, y: 120 + Math.random() * 80, dropped: false }; flybyTimer = 14 + Math.random() * 8; }
   }
@@ -833,7 +1037,7 @@ function update(dt) {
     it.wob += dt * 3;
     const dx = px - it.x, dy = py - it.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < 130) { it.x += dx * 7 * dt; it.y += dy * 7 * dt; }
+    if (dist < 115) { it.x += dx * 7 * dt; it.y += dy * 7 * dt; }
     if (dist < 62) { collect(it); items.splice(i, 1); continue; }
     if (it.x < -60) items.splice(i, 1);
   }
@@ -891,7 +1095,8 @@ function updateParticles(dt) {
     const p = particles[i];
     p.life -= dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
-    if (p.type !== 'meteor' && p.type !== 'heart') p.vy += 300 * dt;
+    if (p.type !== 'meteor' && p.type !== 'heart' && p.type !== 'wind') p.vy += 300 * dt;
+    if (p.type === 'cone') p.rot += p.vr * dt;
     if (p.life <= 0) particles.splice(i, 1);
   }
   for (let i = confetti.length - 1; i >= 0; i--) {
@@ -1788,6 +1993,7 @@ function drawPerson(x, baseY, h, skin, shirt, hairFn, bounce) {
 
 const HAIR = {
   dad: (r, cy) => { ctx.fillStyle = '#5e503f'; ctx.beginPath(); ctx.arc(0, cy - r * 0.25, r * 0.95, Math.PI * 1.05, Math.PI * 1.95); ctx.fill(); },
+  kid: (r, cy) => { ctx.fillStyle = '#8a6248'; ctx.beginPath(); ctx.arc(0, cy - r * 0.3, r * 0.92, Math.PI * 1.02, Math.PI * 1.98); ctx.fill(); },
   mom: (r, cy) => {
     ctx.fillStyle = '#7f5539';
     ctx.beginPath(); ctx.arc(0, cy - r * 0.15, r * 1.05, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
@@ -1945,6 +2151,124 @@ function drawFloats() {
   ctx.globalAlpha = 1;
 }
 
+function drawConeShape(x, baseY) {
+  /* a little traffic cone: orange triangle, white stripe, base */
+  ctx.fillStyle = '#ff7b00';
+  ctx.beginPath();
+  ctx.moveTo(x - 13, baseY); ctx.lineTo(x, baseY - 30); ctx.lineTo(x + 13, baseY);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(x - 8, baseY - 11); ctx.lineTo(x + 8, baseY - 11);
+  ctx.lineTo(x + 6, baseY - 17); ctx.lineTo(x - 6, baseY - 17);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e85d04';
+  rr(x - 16, baseY - 3, 32, 5, 2); ctx.fill();
+}
+
+function drawCow(ob) {
+  const y = groundY + ob.y;
+  ctx.save();
+  ctx.translate(ob.x, y);
+  const startled = ob.hit;
+  /* tail */
+  ctx.strokeStyle = '#e8e4dc'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(30, -44); ctx.quadraticCurveTo(42, -34, 38, -20); ctx.stroke();
+  /* legs */
+  ctx.strokeStyle = '#e8e4dc'; ctx.lineWidth = 9;
+  for (const lx of [-22, -10, 12, 24]) {
+    ctx.beginPath(); ctx.moveTo(lx, -22); ctx.lineTo(lx + (startled ? Math.sin(lx) * 6 : 0), 0); ctx.stroke();
+  }
+  /* body with patches */
+  ctx.fillStyle = '#f4f1ea';
+  rr(-34, -52, 68, 32, 15); ctx.fill();
+  ctx.fillStyle = '#3d405b';
+  ctx.beginPath(); ctx.ellipse(-12, -42, 11, 8, 0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(16, -30, 9, 7, -0.4, 0, Math.PI * 2); ctx.fill();
+  /* head (faces the incoming train) */
+  ctx.fillStyle = '#f4f1ea';
+  ctx.beginPath(); ctx.arc(-38, -56, 16, 0, Math.PI * 2); ctx.fill();
+  /* horns + ears */
+  ctx.strokeStyle = '#d9c79e'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-46, -68); ctx.lineTo(-50, -76); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-32, -69); ctx.lineTo(-28, -77); ctx.stroke();
+  ctx.fillStyle = '#e8e4dc';
+  ctx.beginPath(); ctx.ellipse(-52, -60, 6, 4, 0.5, 0, Math.PI * 2); ctx.fill();
+  /* muzzle */
+  ctx.fillStyle = '#f4acb7';
+  ctx.beginPath(); ctx.ellipse(-44, -48, 9, 6.5, 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#9d6b7b';
+  ctx.beginPath(); ctx.arc(-47, -49, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-42, -47, 1.6, 0, Math.PI * 2); ctx.fill();
+  /* eye: wide when startled */
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-38, -60, startled ? 6 : 4.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2b2d42';
+  ctx.beginPath(); ctx.arc(-38, -60, startled ? 3 : 2.2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawObstacles() {
+  for (const ob of obstacles) {
+    if (ob.type === 'cone') {
+      drawConeShape(ob.x - 16, groundY - 2);
+      drawConeShape(ob.x + 16, groundY - 2);
+    } else if (ob.type === 'hay') {
+      drawHay(ob.x, groundY - 2);
+    } else if (ob.type === 'cow') {
+      drawCow(ob);
+    } else if (ob.type === 'cloud') {
+      ctx.fillStyle = '#aab4c4';
+      ctx.beginPath();
+      ctx.arc(ob.x - 22, ob.y, 20, 0, Math.PI * 2);
+      ctx.arc(ob.x + 2, ob.y - 12, 23, 0, Math.PI * 2);
+      ctx.arc(ob.x + 24, ob.y, 19, 0, Math.PI * 2);
+      ctx.fill();
+      /* grumpy face */
+      ctx.fillStyle = '#33415c';
+      ctx.beginPath(); ctx.arc(ob.x - 6, ob.y - 4, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ob.x + 10, ob.y - 4, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#33415c'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(ob.x + 2, ob.y + 10, 6, Math.PI + 0.3, -0.3); ctx.stroke();
+      /* lightning bolt when bumped */
+      if (ob.flash > 0) {
+        ctx.fillStyle = '#ffd000';
+        ctx.beginPath();
+        ctx.moveTo(ob.x - 2, ob.y + 16); ctx.lineTo(ob.x - 12, ob.y + 36);
+        ctx.lineTo(ob.x - 2, ob.y + 34); ctx.lineTo(ob.x - 8, ob.y + 54);
+        ctx.lineTo(ob.x + 10, ob.y + 30); ctx.lineTo(ob.x, ob.y + 32);
+        ctx.lineTo(ob.x + 8, ob.y + 16);
+        ctx.closePath(); ctx.fill();
+      }
+    } else if (ob.type === 'asteroid') {
+      ctx.save();
+      ctx.translate(ob.x, ob.y);
+      ctx.rotate(ob.rot);
+      ctx.fillStyle = '#9a8c98';
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const rad = 24 + (i % 2 ? 5 : -3);
+        i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad) : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7d7383';
+      ctx.beginPath(); ctx.arc(-6, -4, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(9, 7, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function drawCountdown() {
+  if (game.countT <= 0 || game.countIdx < 0) return;
+  const text = UA.countdownShow[game.countIdx];
+  const size = game.countIdx === 3 ? 64 : 130;
+  const age = [3.6, 2.6, 1.6, 0.6][game.countIdx] - game.countT;
+  const pop = Math.min(1, age * 6) * (1 + Math.sin(game.time * 6) * 0.03);
+  drawOutlinedText(text, worldW / 2, worldH * 0.42, size, '#fff', '#e85d04', pop);
+}
+
 function drawPuddles() {
   for (const p of puddles) {
     ctx.fillStyle = '#5d9fd6';
@@ -1965,6 +2289,14 @@ function drawParticles() {
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 44, p.y - 14); ctx.stroke();
     } else if (p.type === 'heart') {
       heart(p.x, p.y, p.r); ctx.fill();
+    } else if (p.type === 'wind') {
+      ctx.strokeStyle = p.color; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 38, p.y); ctx.stroke();
+    } else if (p.type === 'cone') {
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      drawConeShape(0, 11);
+      ctx.restore();
     } else {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
@@ -2024,14 +2356,17 @@ function drawCelebration() {
   drawOutlinedText(UA.celebrate, worldW / 2, worldH * 0.22, 56, '#ffd000', '#c46a00', 1 + Math.sin(t * 5) * 0.04);
 
   const cx = worldW / 2;
-  const labels = [UA.names.dad, UA.names.mom, UA.names.sis, UA.names.dog1, UA.names.dog2];
-  const xs = [cx - 220, cx - 110, cx - 10, cx + 110, cx + 230];
+  /* Romchyk himself celebrates in the middle, bouncing highest */
+  const f = Math.min(1, worldW / 660);
+  const labels = [UA.names.dad, UA.names.mom, UA.kid, UA.names.sis, UA.names.dog1, UA.names.dog2];
+  const xs = [-270, -160, -45, 60, 165, 285].map((o) => cx + o * f);
   const b = (i) => Math.abs(Math.sin(t * 4 + i * 0.7)) * 20;
   drawPerson(xs[0], groundY, 165, '#ffd6b1', '#1982c4', HAIR.dad, b(0));
   drawPerson(xs[1], groundY, 150, '#ffd6b1', '#e63946', HAIR.mom, b(1));
-  drawPerson(xs[2], groundY, 100, '#ffd6b1', '#ff8fab', HAIR.sis, b(2));
-  ctx.save(); ctx.translate(xs[3], groundY - b(3) * 0.6); ctx.scale(0.9, 0.9); drawHusky(0, 0, t, 0, true); ctx.restore();
-  ctx.save(); ctx.translate(xs[4], groundY - b(4) * 0.6); ctx.scale(0.9, 0.9); drawHusky(0, 0, t, 1, true); ctx.restore();
+  drawPerson(xs[2], groundY, 110, '#ffd6b1', '#3a86ff', HAIR.kid, b(2) * 1.5);
+  drawPerson(xs[3], groundY, 95, '#ffd6b1', '#ff8fab', HAIR.sis, b(3));
+  ctx.save(); ctx.translate(xs[4], groundY - b(4) * 0.6); ctx.scale(0.85, 0.85); drawHusky(0, 0, t, 0, true); ctx.restore();
+  ctx.save(); ctx.translate(xs[5], groundY - b(5) * 0.6); ctx.scale(0.85, 0.85); drawHusky(0, 0, t, 1, true); ctx.restore();
 
   ctx.font = '700 20px ui-rounded, system-ui';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2080,6 +2415,7 @@ function frame(now) {
     drawFloats();
   } else if (game.state === 'play') {
     drawPuddles();
+    drawObstacles();
     drawFlyby();
     drawTrail();
     drawItems();
@@ -2091,6 +2427,7 @@ function frame(now) {
     drawHUD();
     drawHuntCard();
     drawBanner();
+    drawCountdown();
   }
   requestAnimationFrame(frame);
 }
@@ -2110,7 +2447,8 @@ document.getElementById('playBtn').addEventListener('click', () => {
   game.bannerT = 2.2;
   game.bannerText = STAGES[game.stage].name;
   game.stageT = 0;
-  game.huntDone = false;
+  game.huntCount = 0;
+  game.countT = 4.6; game.countIdx = -2;
   Voice.say(UA.greeting, { force: true });
 });
 

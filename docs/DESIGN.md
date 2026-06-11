@@ -50,6 +50,25 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Pace and entertainment (v4)
+
+- Ready-set-go countdown opens every stage: big numerals 1-2-3 with voice
+  («Раз! Два! Три! Поїхали!») while the vehicle can hop in place.
+- Lightning bolt (⚡) collectible triggers a 4-second turbo: 1.55× speed,
+  wind streaks, rainbow trail, «Турбо!» voice line.
+- The world speeds up ~1.5% per collected star, so each stage accelerates
+  toward its celebration.
+- Two number hunts per stage (at ~12 s and ~34 s); item spawns are slightly
+  sparser, so a stage lasts noticeably longer.
+- Funny no-fail obstacles per vehicle: traffic cones that fly apart
+  (roads), a hay bale that bursts into straw (tractor), a cow that leaps
+  over the train with a startled «Му-у!» (no slowdown — pure comedy),
+  grumpy thunderclouds that buzz and nudge flyers down, and crumbling
+  asteroids in space. Hits cost at most a brief slowdown.
+- Celebrations are longer (6.8 s) with fireworks bursts, and Romchyk
+  himself bounces in the middle of the family line-up.
+- The chiptune now alternates A and B melodies every four bars.
+
 ## Tap interactivity (v3)
 
 Cause-and-effect toys on top of the one-button core (the tap still jumps):
