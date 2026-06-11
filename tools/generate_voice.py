@@ -186,6 +186,16 @@ STORIES = {
 }
 
 
+def mastery_phrases(add) -> None:
+    """Celebration lines for newly mastered digits, letters, colours."""
+    for w in DIGITS:
+        add([f"Ура! Ти вивчив цифру {w}!"], "excited")
+    for say in ["а", "о", "ем", "те", "ес", "і", "ка", "ве", "бе", "де", "ен", "ел", "е", "у"]:
+        add([f"Ура! Ти вивчив літеру {say}!"], "excited")
+    for masc in ["червоний", "синій", "зелений", "жовтий", "рожевий", "фіолетовий"]:
+        add([f"Ура! Ти вивчив {masc} колір!"], "excited")
+
+
 def expand(phrases: list[str]) -> list[str]:
     """Expand '{n}' templates into one phrase per address form."""
     out: list[str] = []
@@ -244,8 +254,9 @@ def all_phrases() -> list[tuple[str, str]]:
             if acc != dict(COLORS)[name]:
                 add([f"Це {name} кулька. А де {acc}?"], "calm")
     # letter hunt: each letter is voiced by its name
-    letters = [("А", "а"), ("Б", "бе"), ("В", "ве"), ("Д", "де"), ("І", "і"),
-               ("К", "ка"), ("М", "ем"), ("О", "о"), ("С", "ес"), ("Т", "те")]
+    letters = [("А", "а"), ("О", "о"), ("М", "ем"), ("Т", "те"), ("С", "ес"),
+               ("І", "і"), ("К", "ка"), ("В", "ве"), ("Б", "бе"), ("Д", "де"),
+               ("Н", "ен"), ("Л", "ел"), ("Е", "е"), ("У", "у")]
     for _, say in letters:
         add([f"Знайди літеру {say}!"], "calm")
         add([f"Так! Це літера {say}! Молодець!"], "excited")
@@ -253,14 +264,16 @@ def all_phrases() -> list[tuple[str, str]]:
         for _, ts in letters:
             if ks != ts:
                 add([f"Це літера {ks}. А де літера {ts}?"], "calm")
-    # number-track gate: rows of three start at 1..3
+    # number-track gate: rows can start anywhere up to 7 as digits master
     add(["Ой! Цифра загубилась! Яка це цифра?"], "calm")
-    for n in (1, 2, 3):
+    for n in (1, 2, 3, 4, 5, 6, 7):
         a, b, c = DIGITS[n - 1], DIGITS[n], DIGITS[n + 1]
         add([f"Порахуй: {a}, {b}… Яка цифра йде далі?"], "calm")
         add([f"Так! Далі йде {c}! Молодець!"], "excited")
         add([f"Так! Це {b}! Усі цифри на місці!"], "excited")
         add([f"{a}, {b}, {c}!"], "excited")
+
+    mastery_phrases(add)
 
     # dedupe, keep first emotion
     seen: dict[str, str] = {}

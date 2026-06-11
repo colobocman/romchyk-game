@@ -50,6 +50,25 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Adaptive learning (v11)
+
+- A learning tracker in localStorage records every digit, letter, and
+  colour: attempts, correct answers, current streak, mastery timestamps.
+  Three correct answers in a row master a fact and unlock the next item
+  of the curriculum, so new material appears exactly as the old is
+  learned. Mastered facts return as easy reviews ~25% of the time.
+- Hunt targets come from the active pool (the current focus is asked
+  most), and wrong options favour familiar material so the child never
+  faces three never-seen symbols at once.
+- The letter curriculum grew to 14 letters in learnability order
+  (А О М Т С І К В Б Д Н Л Е У). The number-track gate rows reach higher
+  digits as more digits are mastered (rows up to 7-8-9).
+- Mastering a fact triggers its own celebration: extra sparkles and a
+  voiced «Ура! Ти вивчив цифру пʼять!» line (29 mastery clips; 685 total).
+- A parent-facing progress panel on the title screen shows green
+  (mastered), amber with streak dots (learning now), and grey (upcoming)
+  chips per category, overall accuracy, and a reset button.
+
 ## Four wheels more, and proper start/finish (v10)
 
 - New vehicles (14 stages total): white semi truck hauling a sand heap
