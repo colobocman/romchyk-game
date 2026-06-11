@@ -22,16 +22,26 @@ for a small child: one input, no fail state, frequent rewards.
 ## Core loop
 
 1. Vehicle auto-drives to the right through a scrolling world.
-2. Tap = jump (car, motorcycle) or fly up (drone). Generous magnet pulls
-   nearby collectibles in, so timing barely matters.
+2. Tap = jump (ground vehicles) or fly up (drone, rocket). Generous magnet
+   pulls nearby collectibles in, so timing barely matters.
 3. Collect 10 items → celebration: confetti, fanfare, the family cheers
    (Tato, Mama, little sister Darynka, huskies Sheila and Rey), voice praise.
-4. Vehicle rotates: red race car (day meadow) → motorcycle (sunset hills) →
-   drone (sky with rainbow and flowers) → back to car. Infinite.
+4. Six stages rotate forever: red race car (day meadow) → motorcycle
+   (sunset hills) → drone (rainbow sky, flowers) → fire truck (town with
+   houses, flashing beacon, siren jingle) → tractor (farm: fence,
+   sunflowers, hay, exhaust puffs) → rocket (night space: sleeping moon,
+   planets, twinkling stars, meteors, fireflies).
 
-Special collectible: a bone summons a husky (alternating Sheila/Rey) to run
-alongside for a few seconds with a bark sound. A decorative drone
-occasionally flies across during ground stages and drops a star.
+Special collectibles and rewards (v2):
+- A bone summons a husky (alternating Sheila/Rey) to run alongside for a few
+  seconds with a bark sound.
+- A gift box bursts into two bonus stars.
+- Three collects within 2.5 s = combo: rainbow trail behind the vehicle, an
+  arpeggio jingle, and special praise.
+- Voice praise fires on every second collect (pool of 12 phrases, many with
+  his name) instead of every third.
+- A decorative drone occasionally flies across during ground stages and
+  drops a star. Birds flap across day skies.
 
 ## Technology
 

@@ -9,13 +9,18 @@ drones, and his two huskies. No install, no build, no dependencies — a single
 ## How to play
 
 - Tap anywhere on the screen (or press Space / Arrow Up on a keyboard).
-- Car and motorcycle stages: tap to jump (a second tap in the air gives a
-  little double-jump). Collect toys, stars, and balls.
-- Drone stage: tap to fly up, release to float down.
+- Ground vehicles (red race car, motorcycle, fire truck, tractor): tap to
+  jump (a second tap in the air gives a little double-jump). Collect toys,
+  stars, and balls.
+- Flying vehicles (drone, night rocket): tap to fly up, release to float down.
 - Collecting a bone calls one of the huskies — Sheila (grey) or Rey (white) —
   to run alongside.
+- Gifts burst into bonus stars. Three quick collects in a row earn a rainbow
+  trail and extra praise.
 - Every 10 stars: confetti celebration with the whole family (Tato, Mama,
-  Darynka, and both dogs), then the next vehicle.
+  Darynka, and both dogs), then the next vehicle. Six stages rotate forever:
+  car (meadow) → motorcycle (sunset) → drone (rainbow sky) → fire truck
+  (town) → tractor (farm) → rocket (night space with moon and planets).
 - There is no way to lose. Puddles just splash and slow you down for a moment.
 
 ## Features
