@@ -216,16 +216,14 @@ def all_phrases() -> list[tuple[str, str]]:
         for _, acc in COLORS:
             if acc != dict(COLORS)[name]:
                 add([f"Це {name} кулька. А де {acc}?"], "calm")
-    # math gate: a in 1..3, b in 1..2, distractors 1..6
-    for a in (1, 2, 3):
-        for b in (1, 2):
-            s = a + b
-            wa, wb, ws = DIGITS[a - 1], DIGITS[b - 1], DIGITS[s - 1]
-            add([f"Скільки буде {wa} плюс {wb}?"], "calm")
-            add([f"Так! {wa} плюс {wb} — буде {ws}! Розумничок!"], "excited")
-            for k in range(1, 7):
-                if k != s:
-                    add([f"Це {DIGITS[k - 1]}. А скільки буде {wa} плюс {wb}?"], "calm")
+    # number-track gate: rows of three start at 1..3
+    add(["Ой! Цифра загубилась! Яка це цифра?"], "calm")
+    for n in (1, 2, 3):
+        a, b, c = DIGITS[n - 1], DIGITS[n], DIGITS[n + 1]
+        add([f"Порахуй: {a}, {b}… Яка цифра йде далі?"], "calm")
+        add([f"Так! Далі йде {c}! Молодець!"], "excited")
+        add([f"Так! Це {b}! Усі цифри на місці!"], "excited")
+        add([f"{a}, {b}, {c}!"], "excited")
 
     # dedupe, keep first emotion
     seen: dict[str, str] = {}

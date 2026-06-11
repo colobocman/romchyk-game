@@ -127,10 +127,16 @@ const UA = {
   colorPrompt: (acc) => 'Знайди ' + acc + ' кульку!',
   colorRight: (name) => 'Так! Це ' + name + ' кулька! Молодець!',
   colorWrong: (name, acc) => 'Це ' + name + ' кулька. А де ' + acc + '?',
-  mathPrompt: (a, b) => 'Скільки буде ' + a + ' плюс ' + b + '?',
-  mathBanner: (a, b) => a + ' + ' + b + ' = ?',
-  mathRight: (a, b, s) => 'Так! ' + a + ' плюс ' + b + ' — буде ' + s + '! Розумничок!',
-  mathWrong: (k, a, b) => 'Це ' + k + '. А скільки буде ' + a + ' плюс ' + b + '?',
+  /* number-track gate: continue the count, or spot the lost number.
+   * "Далі" and a visible gap in the row explain themselves — no need to
+   * know the words "перед" or "після". */
+  seqAfterPrompt: (a, b) => 'Порахуй: ' + a + ', ' + b + '… Яка цифра йде далі?',
+  seqMissingPrompt: 'Ой! Цифра загубилась! Яка це цифра?',
+  seqAfterRight: (x) => 'Так! Далі йде ' + x + '! Молодець!',
+  seqMissingRight: (x) => 'Так! Це ' + x + '! Усі цифри на місці!',
+  seqRead: (a, b, c) => a + ', ' + b + ', ' + c + '!',
+  seqAfterBanner: 'Яка цифра далі?',
+  seqMissingBanner: 'Цифра загубилась!',
   countIntro: 'Порахуймо зірочки!',
   countDone: 'Десять зірочок!',
   celebrate: 'Молодець, Ромчику!',
@@ -789,40 +795,18 @@ function pickItemKind() {
 }
 
 function spawnItems() {
+  /* one item at a time, and never a crowd — at most three on screen */
+  if (items.length >= 3) return;
   const cfg = STAGES[game.stage];
   const baseX = worldW + 60;
-  const starKind = cfg.night ? '🌟' : '⭐';
   if (cfg.fly) {
-    if (Math.random() < 0.15) {
-      /* zigzag of four */
-      const kind = pickItemKind();
-      for (let i = 0; i < 4; i++) {
-        items.push({ x: baseX + i * 75, y: groundY - 160 - (i % 2) * 150 - Math.random() * 40, kind: kind === '🦴' ? starKind : kind, r: 24, wob: i });
-      }
-      return;
-    }
     const y = groundY - 60 - Math.random() * 420;
     items.push({ x: baseX, y, kind: pickItemKind(), r: 24, wob: Math.random() * 6 });
     return;
   }
-  const roll = Math.random();
-  if (roll < 0.3) {
-    /* little arc of three stars, reachable with one jump */
-    for (let i = 0; i < 3; i++) {
-      const y = groundY - 90 - Math.sin((i / 2) * Math.PI) * 110;
-      items.push({ x: baseX + i * 70, y, kind: starKind, r: 24, wob: i });
-    }
-  } else if (roll < 0.44) {
-    /* toy parade: a row of four at ground level */
-    const kind = pickItemKind();
-    for (let i = 0; i < 4; i++) {
-      items.push({ x: baseX + i * 72, y: groundY - 48, kind: kind === '🦴' ? starKind : kind, r: 24, wob: i * 0.8 });
-    }
-  } else {
-    const low = Math.random() < 0.55;
-    const y = low ? groundY - 48 : groundY - 150 - Math.random() * 70;
-    items.push({ x: baseX, y, kind: pickItemKind(), r: 24, wob: Math.random() * 6 });
-  }
+  const low = Math.random() < 0.55;
+  const y = low ? groundY - 48 : groundY - 150 - Math.random() * 70;
+  items.push({ x: baseX, y, kind: pickItemKind(), r: 24, wob: Math.random() * 6 });
 }
 
 function spawnPuff(x, y, color, n) {
@@ -914,23 +898,29 @@ function startHunt() {
 function huntSay() {
   if (hunt.mode === 'number') Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
   else if (hunt.mode === 'color') Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
-  else Voice.say(UA.mathPrompt(UA.digits[hunt.a - 1], UA.digits[hunt.b - 1]), { force: true, emotion: 'calm' });
+  else if (hunt.type === 'after') Voice.say(UA.seqAfterPrompt(UA.digits[hunt.seq[0] - 1], UA.digits[hunt.seq[1] - 1]), { force: true, emotion: 'calm' });
+  else Voice.say(UA.seqMissingPrompt, { force: true, emotion: 'calm' });
 }
 
-/* Math gate: after ten stars a tiny addition question (sums up to five)
- * unlocks the celebration. Friendly retries; auto-passes after a while. */
+/* Number-track gate: after ten stars, three big cards show a counting row
+ * with one card blank — either at the end (continue counting: 2, 3, …?)
+ * or in the middle (a number got lost). The gap is visible, so the idea
+ * of "next"/"missing" needs no grown-up words. Friendly retries; an
+ * ignored question reveals itself and the party starts anyway. */
 function maybeFinishStage() {
   if (game.collected < GOAL || game.state !== 'play' || game.mathGate) return;
   game.mathGate = true;
   hunt = null;
-  startMathGate();
+  startSeqGate();
 }
 
-function startMathGate() {
-  const a = 1 + ((Math.random() * 3) | 0);
-  const b = 1 + ((Math.random() * 2) | 0);
-  const sum = a + b;
-  const set = new Set([sum]);
+function startSeqGate() {
+  const type = Math.random() < 0.5 ? 'after' : 'missing';
+  const n = 1 + ((Math.random() * 3) | 0);          // row starts at 1..3
+  const seq = [n, n + 1, n + 2];
+  const slot = type === 'after' ? 2 : 1;            // which card is blank
+  const target = seq[slot];
+  const set = new Set([target]);
   while (set.size < 3) set.add(1 + ((Math.random() * 6) | 0));
   const arr = [...set].sort(() => Math.random() - 0.5);
   const fly = STAGES[game.stage].fly;
@@ -938,15 +928,27 @@ function startMathGate() {
     ? [groundY - 130, groundY - 290, groundY - 430]
     : [groundY - 64, groundY - 140, groundY - 205];
   hunt = {
-    mode: 'math', a, b, target: sum, t: 0, promptT: 9,
+    mode: 'seq', type, seq, slot, target, doneT: 0, t: 0, promptT: 9,
     balloons: arr.map((d, i) => ({
       x: worldW + 80 + i * 170, y: slots[i % 3], digit: d,
       color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
     })),
   };
   game.bannerT = 2.6;
-  game.bannerText = UA.mathBanner(hunt.a, hunt.b);
-  Voice.say(UA.mathPrompt(UA.digits[a - 1], UA.digits[b - 1]), { force: true, emotion: 'calm' });
+  game.bannerText = type === 'after' ? UA.seqAfterBanner : UA.seqMissingBanner;
+  huntSay();
+}
+
+function solveSeqGate(spoken) {
+  /* fill the blank card, read the whole row, then celebrate */
+  SFX.combo(); SFX.collect();
+  hunt.doneT = 2.2;
+  hunt.balloons.length = 0;
+  if (spoken) {
+    const w = UA.digits[hunt.target - 1];
+    Voice.say(hunt.type === 'after' ? UA.seqAfterRight(w) : UA.seqMissingRight(w), { force: true, emotion: 'excited' });
+  }
+  Voice.say(UA.seqRead(UA.digits[hunt.seq[0] - 1], UA.digits[hunt.seq[1] - 1], UA.digits[hunt.seq[2] - 1]), { queue: true, emotion: 'excited' });
 }
 
 function updateHunt(dt, v, px, py) {
@@ -956,11 +958,19 @@ function updateHunt(dt, v, px, py) {
     hunt.promptT = 9;
     huntSay();
   }
-  if (hunt.t > (hunt.mode === 'math' ? 28 : 32)) {
-    /* never block the party: an ignored math question passes by itself */
-    const wasMath = hunt.mode === 'math';
-    hunt = null;
-    if (wasMath) startCelebration();
+  if (hunt.mode === 'seq' && hunt.doneT > 0) {
+    /* showing the completed row, then the celebration */
+    hunt.doneT -= dt;
+    if (hunt.doneT <= 0) { hunt = null; startCelebration(); }
+    return;
+  }
+  if (hunt.t > (hunt.mode === 'seq' ? 26 : 32)) {
+    if (hunt.mode === 'seq') {
+      /* never block the party: reveal the answer and move on */
+      solveSeqGate(true);
+    } else {
+      hunt = null;
+    }
     return;
   }
   for (const b of hunt.balloons) {
@@ -982,11 +992,10 @@ function updateHunt(dt, v, px, py) {
         } else if (hunt.mode === 'color') {
           Voice.say(UA.colorRight(HUNT_COLORS[b.colorIdx].name), { force: true, emotion: 'excited' });
         } else {
-          /* math gate solved — straight to the celebration */
+          /* number-track gate solved */
           floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
-          Voice.say(UA.mathRight(UA.digits[hunt.a - 1], UA.digits[hunt.b - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'excited' });
-          hunt = null;
-          startCelebration();
+          spawnSparkles(b.x, b.y, 20);
+          solveSeqGate(true);
           return;
         }
         game.collected++;
@@ -1002,7 +1011,7 @@ function updateHunt(dt, v, px, py) {
       } else if (hunt.mode === 'color') {
         Voice.say(UA.colorWrong(HUNT_COLORS[b.colorIdx].name, HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
       } else {
-        Voice.say(UA.mathWrong(UA.digits[b.digit - 1], UA.digits[hunt.a - 1], UA.digits[hunt.b - 1]), { force: true, emotion: 'calm' });
+        Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
       }
       b.pop = 1.4;
     }
@@ -1126,11 +1135,7 @@ function collect(it) {
     SFX.bark();
     Voice.say(pick(UA.dogJoin[game.dogToggle]), { emotion: 'warm' });
   } else if (it.kind === '🎁') {
-    /* a gift bursts into two bonus stars right where it was */
-    const starKind = STAGES[game.stage].night ? '🌟' : '⭐';
-    for (const d of [-40, 40]) {
-      items.push({ x: it.x + 50, y: Math.max(60, it.y + d), kind: starKind, r: 24, wob: Math.random() * 6 });
-    }
+    /* a gift is a one-star surprise with extra sparkles */
     spawnSparkles(it.x, it.y, 16);
     Voice.say(pick(UA.gift), { emotion: 'fun' });
   } else if (!comboFired) {
@@ -1373,14 +1378,17 @@ function update(dt) {
 
   /* funny obstacles */
   obstacleTimer -= dt;
-  if (obstacleTimer <= 0) { spawnObstacle(); obstacleTimer = 7 + Math.random() * 4; }
+  if (obstacleTimer <= 0) {
+    if (!hunt) spawnObstacle();
+    obstacleTimer = 9 + Math.random() * 5;
+  }
   updateObstacles(dt, v, player.x, pyNow);
 
   /* spawn items / puddles / flyby / meteors */
   itemTimer -= dt;
   if (itemTimer <= 0) {
     spawnItems();
-    itemTimer = (hunt ? 1.6 : 1.0) + Math.random() * 0.9;
+    itemTimer = (hunt ? 2.4 : 1.6) + Math.random() * 1.0;
   }
   if (cfg.ground === 'road') {
     puddleTimer -= dt;
@@ -1421,13 +1429,9 @@ function update(dt) {
     if (p.x < -120) puddles.splice(i, 1);
   }
 
-  /* decorative drone flyby drops a star */
+  /* decorative drone flyby (just a friendly visitor, drops nothing) */
   if (flyby) {
     flyby.x -= (v + 160) * dt;
-    if (!flyby.dropped && flyby.x < worldW * 0.75) {
-      flyby.dropped = true;
-      items.push({ x: flyby.x, y: flyby.y + 60, kind: STAGES[game.stage].night ? '🌟' : '⭐', r: 24, wob: 0 });
-    }
     if (flyby.x < -100) flyby = null;
   }
 
@@ -2632,6 +2636,7 @@ function drawBalloons() {
 
 function drawHuntCard() {
   if (!hunt) return;
+  if (hunt.mode === 'seq') { drawSeqCards(); return; }
   rr(14, 74, 104, 58, 16);
   ctx.fillStyle = 'rgba(255,255,255,.9)';
   ctx.fill();
@@ -2643,14 +2648,41 @@ function drawHuntCard() {
     ctx.fillStyle = '#2b2d42';
     ctx.font = '900 36px system-ui';
     ctx.fillText(String(hunt.target), 86, 105);
-  } else if (hunt.mode === 'color') {
+  } else {
     ctx.fillStyle = HUNT_COLORS[hunt.target].hex;
     ctx.beginPath(); ctx.arc(86, 103, 17, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 2.5; ctx.stroke();
-  } else {
-    ctx.fillStyle = '#2b2d42';
-    ctx.font = '900 26px system-ui';
-    ctx.fillText(hunt.a + '+' + hunt.b, 86, 105);
+  }
+}
+
+/* The number track: three big cards front and centre. The blank one
+ * pulses with a «?», and turns green once the right digit is caught. */
+function drawSeqCards() {
+  const f = Math.min(1, worldW / 660);
+  const cw = 86 * f, ch = 104 * f, gap = 14 * f;
+  const total = 3 * cw + 2 * gap;
+  const x0 = worldW / 2 - total / 2;
+  const y0 = 86;
+  for (let i = 0; i < 3; i++) {
+    const x = x0 + i * (cw + gap);
+    const isBlank = i === hunt.slot && hunt.doneT <= 0;
+    const justFilled = i === hunt.slot && hunt.doneT > 0;
+    const pulse = isBlank ? 1 + Math.sin(game.time * 5) * 0.06
+      : justFilled ? 1 + Math.max(0, hunt.doneT - 1.7) * 0.8 : 1;
+    ctx.save();
+    ctx.translate(x + cw / 2, y0 + ch / 2);
+    ctx.scale(pulse, pulse);
+    rr(-cw / 2, -ch / 2, cw, ch, 16 * f);
+    ctx.fillStyle = justFilled ? '#d8f3dc' : 'rgba(255,255,255,.94)';
+    ctx.fill();
+    ctx.strokeStyle = isBlank ? '#ff9500' : justFilled ? '#52b788' : '#ffb703';
+    ctx.lineWidth = 5 * f;
+    ctx.stroke();
+    ctx.fillStyle = isBlank ? '#ff9500' : '#2b2d42';
+    ctx.font = '900 ' + Math.round(56 * f) + 'px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(isBlank ? '?' : String(hunt.seq[i]), 0, 3 * f);
+    ctx.restore();
   }
 }
 

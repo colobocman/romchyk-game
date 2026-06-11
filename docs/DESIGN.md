@@ -50,6 +50,22 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Calmer screen and the number track (v8)
+
+- Less clutter: collectibles spawn one at a time (no more arcs, zigzags,
+  or parades), at most three on screen, with longer gaps between them.
+  Every item is worth exactly one star (gifts no longer burst into bonus
+  stars), the flyby drone drops nothing, and obstacles never spawn while
+  a hunt or gate is on screen.
+- The math gate is gone. The new number-track gate shows three big cards
+  front and centre with one blank: [2][3][?] continues the count («Порахуй:
+  два, три… Яка цифра йде далі?») and [2][?][4] is a lost number («Ой!
+  Цифра загубилась!»). The visible gap conveys "next"/"missing" without
+  the words «перед»/«після», which Romchyk doesn't know yet. Rows live in
+  1–5. Correct answers fill the card green and the voice reads the whole
+  completed row; wrong answers get the usual friendly correction; an
+  ignored question reveals itself after ~26 s and the party starts anyway.
+
 ## Neural voice (v7)
 
 - All 419 possible utterances are pre-generated as mp3 clips with the
