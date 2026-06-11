@@ -30,7 +30,7 @@
     display: none;
   }
   #bubble {
-    position: fixed; left: 50%; bottom: 18%;
+    position: fixed; left: 50%; bottom: 3%;
     transform: translateX(-50%) scale(0);
     background: #fff; color: #2b2d42;
     font-size: clamp(20px, 4.5vw, 34px); font-weight: 800;
@@ -96,7 +96,7 @@
 
 <div id="title">
   <h1>Ромчик:<br>Великі Перегони</h1>
-  <div class="emojis">🏎️&nbsp;🏍️&nbsp;🚁&nbsp;🚒&nbsp;🚜&nbsp;🚂&nbsp;🚓&nbsp;✈️&nbsp;🚀</div>
+  <div class="emojis">🏎️&nbsp;🏍️&nbsp;🚁&nbsp;🚛&nbsp;🚒&nbsp;🚜&nbsp;🚌&nbsp;🚂&nbsp;🛴&nbsp;🚓&nbsp;🚐&nbsp;✈️&nbsp;🚀</div>
   <button id="playBtn">▶&nbsp;ГРАТИ</button>
   <div id="opts">
     <div class="opt" id="optNumbers"><span class="opt-label">🔢 Цифри</span><span class="switch" id="swNumbers"></span></div>
@@ -200,6 +200,7 @@ const UA = {
     car: 'Бі-бі!', moto: 'Врум!', drone: 'Вжух!', firetruck: 'Ту-ту!',
     tractor: 'Тр-тр-тр!', helicopter: 'Вжух-вжух!', train: 'Чух-чух!',
     police: 'Віу-віу!', plane: 'Вжу-у-ух!', rocket: 'Пуск!',
+    truck: 'Ту-у-у!', van: 'Біп-біп!', bus: 'Бі-бі-біп!', scooter: 'Дзінь-дзінь!',
   },
   names: { dad: 'Тато', mom: 'Мама', sis: 'Даринка', dog1: 'Шейла', dog2: 'Рей', granny1: 'Бабуся Галя', granny2: 'Бабуся Аня', tyson: 'Тайсон' },
 };
@@ -208,64 +209,88 @@ const UA = {
  * celebration. Picked randomly, so missions feel freshly generated. ---- */
 const STORIES = {
   car: [
-    { i: 'Бабу́ся Га́ля спекла пиріжки! Відвеземо їх машинкою!', p: 'Пиріжки доставлено! Бабу́ся Га́ля дякує!' },
-    { i: 'Тайсо́н загубив свій мʼячик! Допоможи знайти!', p: 'Мʼячик знайшовся! Тайсо́н стрибає від щастя!' },
-    { i: 'Мама чекає на квіти! Поїхали по букет!', p: 'Який букет! Мама усміхається!' },
-    { i: 'Тато кличе на пікнік! Зберемо іграшки в дорогу!', p: 'Усе зібрали! Пікнік буде веселим!' },
+    { i: 'Бабу́ся Га́ля спекла пиріжки! Відвеземо їх машинкою!', p: 'Пиріжки доставлено! Бабу́ся Га́ля дякує!', e: '🥧' },
+    { i: 'Тайсо́н загубив свій мʼячик! Допоможи знайти!', p: 'Мʼячик знайшовся! Тайсо́н стрибає від щастя!', e: '⚽' },
+    { i: 'Мама чекає на квіти! Поїхали по букет!', p: 'Який букет! Мама усміхається!', e: '💐' },
+    { i: 'Тато кличе на пікнік! Зберемо іграшки в дорогу!', p: 'Усе зібрали! Пікнік буде веселим!', e: '🧺' },
   ],
   moto: [
-    { i: 'Відвеземо листа бабу́сі А́ні у її квартиру!', p: 'Лист доставлено! Бабу́ся А́ня радіє!' },
-    { i: 'Поспішаємо до бабу́сі Га́лі на чай з варенням!', p: 'Встигли! Чай з варенням — смакота!' },
-    { i: 'Шейла хоче наввипередки! Хто швидше?', p: 'Оце перегони! Шейла весело гавкає!' },
-    { i: 'Тато просить привезти інструменти з гаража!', p: 'Інструменти в тата! Майструємо разом!' },
+    { i: 'Відвеземо листа бабу́сі А́ні у її квартиру!', p: 'Лист доставлено! Бабу́ся А́ня радіє!', e: '✉️' },
+    { i: 'Поспішаємо до бабу́сі Га́лі на чай з варенням!', p: 'Встигли! Чай з варенням — смакота!', e: '🫖' },
+    { i: 'Шейла хоче наввипередки! Хто швидше?', p: 'Оце перегони! Шейла весело гавкає!', e: '🏁' },
+    { i: 'Тато просить привезти інструменти з гаража!', p: 'Інструменти в тата! Майструємо разом!', e: '🔧' },
   ],
   drone: [
-    { i: 'Дрон везе подарунок для маленької Дари́нки!', p: 'Дари́нка агукає від радості!' },
-    { i: 'Сфотографуємо веселку з висоти для мами!', p: 'Яке фото! Мама повісить його на стіну!' },
-    { i: 'Кульки розлетілися по небу! Зберімо їх!', p: 'Усі кульки зібрано! Жодна не втекла!' },
-    { i: 'Подивимось згори, де будинок бабу́сі Га́лі!', p: 'Он він, великий будинок! Бабу́ся махає нам!' },
+    { i: 'Дрон везе подарунок для маленької Дари́нки!', p: 'Дари́нка агукає від радості!', e: '🎁' },
+    { i: 'Сфотографуємо веселку з висоти для мами!', p: 'Яке фото! Мама повісить його на стіну!', e: '📷' },
+    { i: 'Кульки розлетілися по небу! Зберімо їх!', p: 'Усі кульки зібрано! Жодна не втекла!', e: '🎈' },
+    { i: 'Подивимось згори, де будинок бабу́сі Га́лі!', p: 'Он він, великий будинок! Бабу́ся махає нам!', e: '🏠' },
   ],
   firetruck: [
-    { i: 'Кошеня залізло на дерево! Їдемо рятувати!', p: 'Кошеня врятовано! Воно муркоче: няв!' },
-    { i: 'Поллємо квіти біля будинку бабу́сі Га́лі!', p: 'Квіти политі! Як гарно пахнуть!' },
-    { i: 'Сьогодні тренування пожежників! Покажемо клас!', p: 'Тренування на відмінно! Ти справжній пожежник!' },
-    { i: 'Тайсо́н десь сховався! Пожежна машина допоможе!', p: 'Ось він, Тайсо́н! Сидів у будці!' },
+    { i: 'Кошеня залізло на дерево! Їдемо рятувати!', p: 'Кошеня врятовано! Воно муркоче: няв!', e: '🐱' },
+    { i: 'Поллємо квіти біля будинку бабу́сі Га́лі!', p: 'Квіти политі! Як гарно пахнуть!', e: '💦' },
+    { i: 'Сьогодні тренування пожежників! Покажемо клас!', p: 'Тренування на відмінно! Ти справжній пожежник!', e: '🧯' },
+    { i: 'Тайсо́н десь сховався! Пожежна машина допоможе!', p: 'Ось він, Тайсо́н! Сидів у будці!', e: '🐶' },
   ],
   tractor: [
-    { i: 'Бабу́ся Га́ля просить зібрати врожай на городі!', p: 'Врожай зібрано! Буде смачний борщ!' },
-    { i: 'Овечки чекають на свіже сіно! Розвеземо!', p: 'Овечки ситі та задоволені: бе-е!' },
-    { i: 'Тайсо́н закопав кісточку в полі! Знайдімо її!', p: 'Кісточка знайшлася! Тайсо́н гризе щасливий!' },
-    { i: 'Привеземо гарбуза — найбільшого на полі!', p: 'Оце гарбуз! Більший за Тайсо́на!' },
+    { i: 'Бабу́ся Га́ля просить зібрати врожай на городі!', p: 'Врожай зібрано! Буде смачний борщ!', e: '🥕' },
+    { i: 'Овечки чекають на свіже сіно! Розвеземо!', p: 'Овечки ситі та задоволені: бе-е!', e: '🐑' },
+    { i: 'Тайсо́н закопав кісточку в полі! Знайдімо її!', p: 'Кісточка знайшлася! Тайсо́н гризе щасливий!', e: '🦴' },
+    { i: 'Привеземо гарбуза — найбільшого на полі!', p: 'Оце гарбуз! Більший за Тайсо́на!', e: '🎃' },
   ],
   helicopter: [
-    { i: 'Відвеземо бабу́сі А́ні гостинці через море!', p: 'Гостинці в бабу́сі А́ні! Вона пригощає сусідів!' },
-    { i: 'Кораблик заблукав у морі! Покажемо дорогу!', p: 'Кораблик удома! Дякує нам гудком!' },
-    { i: 'Полічимо дельфінів з висоти!', p: 'Стільки дельфінів! Аж вистрибують з води!' },
-    { i: 'Маяк погас! Доставимо нову лампочку!', p: 'Маяк світить! Кораблі кажуть дякую!' },
+    { i: 'Відвеземо бабу́сі А́ні гостинці через море!', p: 'Гостинці в бабу́сі А́ні! Вона пригощає сусідів!', e: '🍬' },
+    { i: 'Кораблик заблукав у морі! Покажемо дорогу!', p: 'Кораблик удома! Дякує нам гудком!', e: '⛵' },
+    { i: 'Полічимо дельфінів з висоти!', p: 'Стільки дельфінів! Аж вистрибують з води!', e: '🐬' },
+    { i: 'Маяк погас! Доставимо нову лампочку!', p: 'Маяк світить! Кораблі кажуть дякую!', e: '💡' },
   ],
   train: [
-    { i: 'Веземо іграшки дітям у гори!', p: 'Іграшки приїхали! Діти плескають у долоні!' },
-    { i: 'По́їзд везе яблука для бабу́сі Га́лі!', p: 'Яблука на місці! Буде яблучний пиріг!' },
-    { i: 'Шейла і Рей їдуть у вагончиках! Чух-чух!', p: 'Приїхали! Хвостики махають на всі боки!' },
-    { i: 'Корівка чекає на гостинці з міста!', p: 'Корівка задоволена! Каже: му-у, дякую!' },
+    { i: 'Веземо іграшки дітям у гори!', p: 'Іграшки приїхали! Діти плескають у долоні!', e: '🧸' },
+    { i: 'По́їзд везе яблука для бабу́сі Га́лі!', p: 'Яблука на місці! Буде яблучний пиріг!', e: '🍎' },
+    { i: 'Шейла і Рей їдуть у вагончиках! Чух-чух!', p: 'Приїхали! Хвостики махають на всі боки!', e: '🐕' },
+    { i: 'Корівка чекає на гостинці з міста!', p: 'Корівка задоволена! Каже: му-у, дякую!', e: '🐄' },
   ],
   police: [
-    { i: 'Ліхтарики в місті згасли! Посвітимо всім!', p: 'Місто сяє вогниками! Всім видно дорогу!' },
-    { i: 'Допоможемо їжачку перейти нічну дорогу!', p: 'Їжачок удома! Дякує голочками!' },
-    { i: 'Нічний патруль! Перевіримо, чи місто спить спокійно!', p: 'Усе спокійно! Місто солодко спить!' },
-    { i: 'Бабу́ся А́ня забула ключі! Швидко веземо запасні!', p: 'Ключі в бабу́сі А́ні! Вона вже вдома, в теплі!' },
+    { i: 'Ліхтарики в місті згасли! Посвітимо всім!', p: 'Місто сяє вогниками! Всім видно дорогу!', e: '🌃' },
+    { i: 'Допоможемо їжачку перейти нічну дорогу!', p: 'Їжачок удома! Дякує голочками!', e: '🦔' },
+    { i: 'Нічний патруль! Перевіримо, чи місто спить спокійно!', p: 'Усе спокійно! Місто солодко спить!', e: '🌙' },
+    { i: 'Бабу́ся А́ня забула ключі! Швидко веземо запасні!', p: 'Ключі в бабу́сі А́ні! Вона вже вдома, в теплі!', e: '🔑' },
   ],
   plane: [
-    { i: 'Летимо в гості до бабу́сі А́ні!', p: 'Прилетіли! Бабу́ся А́ня міцно обіймає!' },
-    { i: 'Намалюємо в небі хмаринку-серце для мами!', p: 'Серце в небі! Мама бачить його з двору!' },
-    { i: 'Доженемо велику повітряну кулю!', p: 'Догнали! Куля привіталася з нами!' },
-    { i: 'Веземо Дари́нці мʼяку іграшку з далекого міста!', p: 'Дари́нка обіймає іграшку і агукає!' },
+    { i: 'Летимо в гості до бабу́сі А́ні!', p: 'Прилетіли! Бабу́ся А́ня міцно обіймає!', e: '🏠' },
+    { i: 'Намалюємо в небі хмаринку-серце для мами!', p: 'Серце в небі! Мама бачить його з двору!', e: '❤️' },
+    { i: 'Доженемо велику повітряну кулю!', p: 'Догнали! Куля привіталася з нами!', e: '🎈' },
+    { i: 'Веземо Дари́нці мʼяку іграшку з далекого міста!', p: 'Дари́нка обіймає іграшку і агукає!', e: '🧸' },
   ],
   rocket: [
-    { i: 'Зірочка загубилась! Повернемо її на небо!', p: 'Зірочка вдома! Вона підморгує нам!' },
-    { i: 'Веземо місяцю теплу ковдру, щоб солодко спав!', p: 'Місяць вкрився і спить! Тс-с-с!' },
-    { i: 'Полічимо планети для маленької Дари́нки!', p: 'Усі планети полічено! Розкажемо Дари́нці вдома!' },
-    { i: 'Тато каже: на небі салют! Подивимось зблизька!', p: 'Який салют! Аж зірки танцюють!' },
+    { i: 'Зірочка загубилась! Повернемо її на небо!', p: 'Зірочка вдома! Вона підморгує нам!', e: '⭐' },
+    { i: 'Веземо місяцю теплу ковдру, щоб солодко спав!', p: 'Місяць вкрився і спить! Тс-с-с!', e: '🌙' },
+    { i: 'Полічимо планети для маленької Дари́нки!', p: 'Усі планети полічено! Розкажемо Дари́нці вдома!', e: '🪐' },
+    { i: 'Тато каже: на небі салют! Подивимось зблизька!', p: 'Який салют! Аж зірки танцюють!', e: '🎆' },
+  ],
+  truck: [
+    { i: 'Фура везе пісок для нової пісочниці!', p: 'Пісочниця готова! Будуємо паски!', e: '🪣' },
+    { i: 'На будові чекають на пісок! Поспішаймо!', p: 'Пісок доставлено! Будівельники дякують!', e: '🏗️' },
+    { i: 'Тато будує доріжку — потрібен пісок!', p: 'Доріжка готова! Тато задоволений!', e: '🛤️' },
+    { i: 'Веземо пісочок для котика бабусі Галі!', p: 'Котик муркоче — дякує за пісочок!', e: '🐱' },
+  ],
+  bus: [
+    { i: 'Автобус везе діток до парку!', p: 'Дітки в парку! Гойдалки чекають!', e: '🌳' },
+    { i: 'Бабуся Аня їде автобусом у гості!', p: 'Бабуся Аня приїхала! Обіймашки!', e: '🏘️' },
+    { i: 'Зупинка за зупинкою — збираємо пасажирів!', p: 'Усі пасажири на місцях! Дякують водію!', e: '🚏' },
+    { i: 'Веземо всю сімʼю на пікнік автобусом!', p: 'Пікнік починається! Смачного!', e: '🧺' },
+  ],
+  scooter: [
+    { i: 'Ромчик їде самокатом у парк!', p: 'Ось і парк! Час гратися!', e: '🎠' },
+    { i: 'Доженемо Тайсона на самокаті!', p: 'Догнали! Тайсон весело гавкає!', e: '🐶' },
+    { i: 'Самокат поспішає по морозиво!', p: 'Морозиво куплено! Смакота!', e: '🍦' },
+    { i: 'Покатаймось доріжками біля дому!', p: 'Гарна прогулянка! Мама махає з вікна!', e: '🏡' },
+  ],
+  van: [
+    { i: 'Чорний бус везе посилки сусідам!', p: 'Усі посилки роздано! Сусіди раді!', e: '📦' },
+    { i: 'Бус допомагає перевезти іграшки Дари́нки!', p: 'Іграшки переїхали! Дари́нка агукає!', e: '🧸' },
+    { i: 'Веземо овочі з ферми до бабусі А́ні!', p: 'Овочі в бабусі А́ні! Буде салат!', e: '🥬' },
+    { i: 'Шейла і Рей їдуть бусом до лісу гуляти!', p: 'Приїхали! Хвости махають — гуляємо!', e: '🐕' },
   ],
 };
 
@@ -278,11 +303,15 @@ const STAGES = [
   { key: 'car',        name: 'Червона машинка!', say: 'Червона машинка! Бі-бі!',        fly: false, night: false, speed: 330, sky: ['#62b6f7', '#bfe7ff'], hills: ['#8edd65', '#5fb944'], ground: 'road',        road: '#555a64', decor: 'trees',     pool: 'ground', lead: 'square',   tempo: 112 },
   { key: 'moto',       name: 'Мотоцикл!',        say: 'Мотоцикл! Врум-врум!',           fly: false, night: false, speed: 385, sky: ['#ff9e5e', '#ffd6a5'], hills: ['#d88c51', '#a8653a'], ground: 'road',        road: '#5a4a42', decor: 'trees',     pool: 'ground', lead: 'sawtooth', tempo: 122 },
   { key: 'drone',      name: 'Дрон! Летимо!',    say: 'Дрон! Летимо високо!',           fly: true,  night: false, speed: 320, sky: ['#4ea8de', '#caf0f8'], hills: ['#90e07c', '#62c258'], ground: 'flowers',     road: null,      decor: 'none',      pool: 'drone',  lead: 'triangle', tempo: 102 },
+  { key: 'truck',      name: 'Біла фура!',       say: 'Біла фура! Везе пісок!',         fly: false, night: false, speed: 315, sky: ['#7ec9f5', '#fdeec9'], hills: ['#d9c189', '#c2a86e'], ground: 'road',        road: '#8d8478', decor: 'sand',      pool: 'ground', lead: 'square',   tempo: 104 },
   { key: 'firetruck',  name: 'Пожежна машина!',  say: 'Пожежна машина! Ту-ту-у!',       fly: false, night: false, speed: 340, sky: ['#73c2fb', '#d6f0ff'], hills: ['#7bc950', '#52a83a'], ground: 'road',        road: '#4f5563', decor: 'city',      pool: 'ground', lead: 'square',   tempo: 118 },
   { key: 'tractor',    name: 'Трактор!',         say: 'Трактор! Тр-тр-тр!',             fly: false, night: false, speed: 300, sky: ['#8ecae6', '#fff3b0'], hills: ['#a3d977', '#74b94e'], ground: 'road',        road: '#8a6f4d', decor: 'farm',      pool: 'ground', lead: 'sawtooth', tempo: 96  },
   { key: 'helicopter', name: 'Гелікоптер!',      say: 'Гелікоптер! Летимо над морем!',  fly: true,  night: false, speed: 340, sky: ['#48b5e4', '#d4f1f9'], hills: ['#79c2a8', '#4ea58b'], ground: 'sea',         road: null,      decor: 'none',      pool: 'sea',    lead: 'triangle', tempo: 116 },
+  { key: 'bus',        name: 'Синій автобус!',   say: 'Синій автобус! Усі сідайте!',    fly: false, night: false, speed: 325, sky: ['#6fb6f5', '#dff3ff'], hills: ['#7bc950', '#52a83a'], ground: 'road',        road: '#555a64', decor: 'city',      pool: 'ground', lead: 'square',   tempo: 108 },
   { key: 'train',      name: 'Поїзд!',           say: 'По́їзд! Чух-чух!',                fly: false, night: false, speed: 310, sky: ['#7fc8f8', '#e3f6ff'], hills: ['#84c887', '#5aa860'], ground: 'rails',       road: '#6b5b4d', decor: 'mountains', pool: 'ground', lead: 'square',   tempo: 100 },
+  { key: 'scooter',    name: 'Самокат!',         say: 'Сірий самокат! Дзінь-дзінь!',    fly: false, night: false, speed: 280, sky: ['#8ad6f0', '#eafff2'], hills: ['#90e07c', '#62c258'], ground: 'road',        road: '#b9a27c', decor: 'trees',     pool: 'ground', lead: 'triangle', tempo: 118 },
   { key: 'police',     name: 'Поліція!',         say: 'Поліцейська машинка! Віу-віу!',  fly: false, night: true,  speed: 360, sky: ['#1d2d50', '#4a5d8f'], hills: ['#2c3a5e', '#222d49'], ground: 'road',        road: '#343b50', decor: 'nightcity', pool: 'nightGround', lead: 'sawtooth', tempo: 114 },
+  { key: 'van',        name: 'Чорний бус!',      say: 'Чорний бус! Біп-біп!',           fly: false, night: false, speed: 345, sky: ['#8d7ba6', '#f2b880'], hills: ['#6d597a', '#5a4e6d'], ground: 'road',        road: '#5d5a66', decor: 'city',      pool: 'ground', lead: 'sawtooth', tempo: 112 },
   { key: 'plane',      name: 'Літак!',           say: 'Літак! Вище хмар!',              fly: true,  night: false, speed: 350, sky: ['#56cfe1', '#e0fbfc'], hills: ['#d2ecfa', '#bfe2f5'], ground: 'clouds',      road: null,      decor: 'balloons',  pool: 'plane',  lead: 'triangle', tempo: 110 },
   { key: 'rocket',     name: 'Ракета!',          say: 'Ракета! Летимо у космос!',       fly: true,  night: true,  speed: 330, sky: ['#141c3f', '#3d5a99'], hills: ['#27355c', '#1c2747'], ground: 'nightmeadow', road: null,      decor: 'none',      pool: 'space',  lead: 'triangle', tempo: 92  },
 ];
@@ -403,6 +432,16 @@ const SFX = {
   planeWhistle() { if (!actx) return; tone({ freq: 700, freqEnd: 1150, t: actx.currentTime, len: 0.3, gain: 0.12 }); },
   rumble()  { if (!actx) return; noise({ t: actx.currentTime, len: 0.45, gain: 0.22, fStart: 300, fEnd: 70 }); },
   boing()   { if (!actx) return; tone({ freq: 320, freqEnd: 90, t: actx.currentTime, len: 0.25, type: 'sine', gain: 0.2 }); },
+  horn() {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: 110, t, len: 0.5, type: 'sawtooth', gain: 0.16 });
+    tone({ freq: 165, t, len: 0.5, type: 'sawtooth', gain: 0.1 });
+  },
+  bell() {
+    if (!actx) return; const t = actx.currentTime;
+    tone({ freq: 1568, t, len: 0.12, gain: 0.14 });
+    tone({ freq: 1568, t: t + 0.15, len: 0.18, gain: 0.14 });
+  },
   baa() {
     if (!actx) return; const t = actx.currentTime;
     /* wobbly two-note bleat */
@@ -678,7 +717,8 @@ const game = {
   celebFwT: 0,             // fireworks timer during celebration
   celebCount: 0, celebStepT: 0, celebPraised: false, // star counting ceremony
   idleT: 0,                // seconds since the last collect (gentle nudge)
-  story: null,             // {i: intro, p: payoff} mission story for this stage
+  story: null,             // {i: intro, p: payoff, e: icon} mission story for this stage
+  gateX: -9999,            // world x of the START arch (scrolls away)
   storySaid: false,        // intro line spoken during the countdown
   mathGate: false,         // math question between 10 stars and celebration
   celebGuest: 0,           // 0: grandma Galya + Tyson, 1: grandma Anya
@@ -705,6 +745,7 @@ const obstacles = [];  // {type, x, y, vy, rot, hit, flash}
 /* funny no-fail obstacles per vehicle */
 const OBSTACLE_BY_KEY = {
   car: 'cone', moto: 'cone', firetruck: 'cone', police: 'cone',
+  truck: 'cone', van: 'cone', bus: 'cone', scooter: 'cone',
   tractor: 'hay', train: 'cow',
   drone: 'cloud', helicopter: 'cloud', plane: 'cloud',
   rocket: 'asteroid',
@@ -759,6 +800,9 @@ function honk() {
     case 'train': SFX.chooChoo(); break;
     case 'plane': SFX.planeWhistle(); break;
     case 'rocket': SFX.rumble(); break;
+    case 'truck': SFX.horn(); break;
+    case 'van': case 'bus': SFX.beep(); break;
+    case 'scooter': SFX.bell(); break;
     default: SFX.whoosh();
   }
   if (Math.random() < 0.35) Voice.say(UA.honks[key], { emotion: 'fun' });
@@ -1025,8 +1069,6 @@ function startSeqGate() {
       color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
     })),
   };
-  game.bannerT = 2.6;
-  game.bannerText = type === 'after' ? UA.seqAfterBanner : UA.seqMissingBanner;
   huntSay();
 }
 
@@ -1271,6 +1313,9 @@ function applyStageSound() {
   else if (key === 'rocket') SFX.humStart(52, 55, 200, 0.07);
   else if (key === 'firetruck' || key === 'police') SFX.siren();
   else if (key === 'train') SFX.chooChoo();
+  else if (key === 'truck') SFX.horn();
+  else if (key === 'scooter') SFX.bell();
+  else if (key === 'van' || key === 'bus') SFX.beep();
 }
 
 function nextStage() {
@@ -1287,6 +1332,7 @@ function nextStage() {
   game.story = pick(STORIES[cfg.key]);
   game.storySaid = false;
   game.mathGate = false;
+  game.gateX = Math.min(240, worldW * 0.3) + 340;
   items.length = 0; puddles.length = 0; trail.length = 0; floats.length = 0;
   obstacles.length = 0;
   wagons[0].y = 0; wagons[1].y = 0;
@@ -1373,6 +1419,7 @@ function update(dt) {
     player.squash += (1 - player.squash) * 8 * dt;
     /* the world idles forward slowly so the screen never looks frozen */
     game.scroll += game.speed * 0.22 * dt;
+    game.gateX -= game.speed * 0.22 * dt;
     for (const c of clouds) {
       c.x -= 9 * c.s * dt;
       if (c.x < -200) { c.x = worldW + 200; c.y = 50 + Math.random() * 160; }
@@ -1394,6 +1441,7 @@ function update(dt) {
   /* gets a little faster with every star — more dynamic toward the goal */
   const v = game.speed * speedMul * turboMul * (1 + game.collected * 0.015);
   game.scroll += v * dt;
+  if (game.gateX > -200) game.gateX -= v * dt;
   /* turbo wind streaks across the screen */
   if (game.turboT > 0) {
     for (let w = 0; w < 2; w++) {
@@ -1415,7 +1463,7 @@ function update(dt) {
   }
 
   /* player physics */
-  player.x = cfg.key === 'train' ? Math.min(320, worldW * 0.45) : Math.min(240, worldW * 0.3);
+  player.x = (cfg.key === 'train' || cfg.key === 'truck') ? Math.min(320, worldW * 0.45) : Math.min(240, worldW * 0.3);
   if (cfg.fly) {
     player.vy = Math.min(player.vy + 1100 * dt, 560);
     player.y += player.vy * dt;
@@ -1450,6 +1498,9 @@ function update(dt) {
     } else if (cfg.key === 'train') {
       spawnPuff(player.x + 35, groundY + player.y - 86, 'rgba(245,245,245,.9)', 1);
       game.puffT = 0.22;
+    } else if (cfg.key === 'truck') {
+      spawnPuff(player.x - 110, groundY + player.y - 78, 'rgba(233,196,106,.7)', 1);
+      game.puffT = 0.45;
     } else if (cfg.key === 'rocket') {
       particles.push({
         x: player.x - 58, y: player.y + (Math.random() * 12 - 6),
@@ -1688,6 +1739,12 @@ function drawBackground() {
     for (let x = -((game.scroll * 0.7) % hs2) - 200; x < worldW + 200; x += hs2) drawHay(x, groundY - 14);
     if (sheepBounce.t > 0) sheepBounce.t -= 1 / 60;
     for (const s of getSheepPositions()) drawSheep(s.x, groundY - 14, s.k === sheepBounce.k ? Math.max(0, sheepBounce.t) : 0);
+  } else if (cfg.decor === 'sand') {
+    /* sand piles along the quarry road */
+    const sp2 = 430;
+    for (let x = -((game.scroll * 0.7) % sp2) - 80; x < worldW + 120; x += sp2) drawHay(x, groundY - 8);
+    const ts3 = 560;
+    for (let x = -((game.scroll * 0.7) % ts3) + 140; x < worldW + 120; x += ts3) drawTree(x, groundY - 14);
   } else if (cfg.decor === 'mountains') {
     const ps = 300;
     for (let x = -((game.scroll * 0.7) % ps) - 60; x < worldW + 100; x += ps) drawPine(x, groundY - 14);
@@ -2415,6 +2472,256 @@ function drawPlane(x, y, tilt, t) {
   ctx.restore();
 }
 
+/* White semi truck hauling a heap of sand */
+function drawTruck(x, baseY, squash, t) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(1, squash);
+  const spin = t * 12;
+  /* trailer box */
+  ctx.fillStyle = '#f1f3f5';
+  rr(-122, -62, 134, 46, 8); ctx.fill();
+  ctx.strokeStyle = '#ced4da'; ctx.lineWidth = 3;
+  for (const lx of [-102, -62, -22]) {
+    ctx.beginPath(); ctx.moveTo(lx, -60); ctx.lineTo(lx, -18); ctx.stroke();
+  }
+  /* sand heap above the open trailer */
+  ctx.fillStyle = '#e9c46a';
+  ctx.beginPath();
+  ctx.moveTo(-120, -62);
+  ctx.quadraticCurveTo(-98, -88, -76, -68);
+  ctx.quadraticCurveTo(-55, -92, -34, -70);
+  ctx.quadraticCurveTo(-16, -84, 10, -62);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#d4a73e';
+  ctx.beginPath(); ctx.arc(-78, -72, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-44, -76, 2.6, 0, Math.PI * 2); ctx.fill();
+  /* cab */
+  ctx.fillStyle = '#ffffff';
+  rr(26, -80, 62, 64, 10); ctx.fill();
+  ctx.fillStyle = '#dee2e6';
+  rr(26, -34, 62, 18, 6); ctx.fill();
+  /* exhaust pipe */
+  ctx.fillStyle = '#6c757d';
+  rr(20, -96, 8, 20, 3); ctx.fill();
+  /* windshield with eyes */
+  ctx.fillStyle = '#bde0fe';
+  rr(54, -74, 28, 24, 7); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(63, -62, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(76, -62, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(65, -62, 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(78, -62, 3.2, 0, Math.PI * 2); ctx.fill();
+  /* smile + headlight */
+  ctx.strokeStyle = '#5c636a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(78, -28, 9, -0.3, 1.2); ctx.stroke();
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(86, -40, 5.5, 0, Math.PI * 2); ctx.fill();
+  for (const wx of [-98, -58, -18, 58]) drawWheel(wx, -8, 15, spin);
+  ctx.restore();
+}
+
+/* Black delivery van */
+function drawVan(x, baseY, squash, t) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(1, squash);
+  const spin = t * 12;
+  ctx.fillStyle = '#212529';
+  rr(-66, -78, 134, 62, 14); ctx.fill();
+  /* windshield + side window */
+  ctx.fillStyle = '#bde0fe';
+  rr(36, -72, 26, 22, 6); ctx.fill();
+  ctx.fillStyle = '#9bb8d3';
+  rr(-10, -72, 38, 20, 5); ctx.fill();
+  /* eyes on the windshield */
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(44, -61, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(56, -61, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(46, -61, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(58, -61, 3, 0, Math.PI * 2); ctx.fill();
+  /* sliding door + handle */
+  ctx.strokeStyle = '#495057'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-14, -74); ctx.lineTo(-14, -22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-44, -74); ctx.lineTo(-44, -22); ctx.stroke();
+  ctx.fillStyle = '#adb5bd';
+  rr(-26, -48, 10, 4, 2); ctx.fill();
+  /* bumper + lights + smile */
+  ctx.fillStyle = '#adb5bd';
+  rr(-66, -26, 134, 9, 4); ctx.fill();
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(64, -36, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#adb5bd'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(56, -28, 9, -0.3, 1.2); ctx.stroke();
+  for (const wx of [-40, 42]) drawWheel(wx, -8, 15, spin);
+  ctx.restore();
+}
+
+/* Blue city bus with passengers — a kid and a husky look out */
+function drawBus(x, baseY, squash, t) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(1, squash);
+  const spin = t * 12;
+  ctx.fillStyle = '#1982c4';
+  rr(-90, -78, 180, 62, 12); ctx.fill();
+  /* route board with Romchyk's number */
+  ctx.fillStyle = '#fff';
+  rr(48, -90, 34, 14, 5); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.font = '900 12px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('3', 65, -83);
+  /* windows */
+  ctx.fillStyle = '#d6ecff';
+  rr(-80, -70, 28, 22, 5); ctx.fill();
+  rr(-46, -70, 28, 22, 5); ctx.fill();
+  rr(-12, -70, 28, 22, 5); ctx.fill();
+  /* windshield with eyes */
+  ctx.fillStyle = '#bde0fe';
+  rr(58, -70, 26, 22, 6); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(66, -59, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(78, -59, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(68, -59, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(80, -59, 3, 0, Math.PI * 2); ctx.fill();
+  /* passengers: a kid and a grey husky muzzle */
+  ctx.fillStyle = '#ffd6b1';
+  ctx.beginPath(); ctx.arc(-66, -58, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#8a6248';
+  ctx.beginPath(); ctx.arc(-66, -62, 8, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  ctx.fillStyle = '#2b2d42';
+  ctx.beginPath(); ctx.arc(-64, -58, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#8d99ae';
+  ctx.beginPath(); ctx.arc(-32, -57, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-38, -63); ctx.lineTo(-36, -70); ctx.lineTo(-31, -63); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2b2d42';
+  ctx.beginPath(); ctx.arc(-29, -57, 1.6, 0, Math.PI * 2); ctx.fill();
+  /* door */
+  ctx.fillStyle = '#11608f';
+  rr(26, -66, 24, 48, 5); ctx.fill();
+  ctx.strokeStyle = '#0c4a70'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(38, -64); ctx.lineTo(38, -20); ctx.stroke();
+  /* smile + headlight */
+  ctx.strokeStyle = '#11608f'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(80, -28, 9, -0.3, 1.2); ctx.stroke();
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(86, -38, 5.5, 0, Math.PI * 2); ctx.fill();
+  for (const wx of [-54, 48]) drawWheel(wx, -8, 16, spin);
+  ctx.restore();
+}
+
+/* Grey kick scooter with Romchyk riding, one leg kicking */
+function drawScooter(x, baseY, squash, t) {
+  ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(1, squash);
+  const spin = t * 16;
+  const kick = Math.sin(t * 7) * 11;
+  /* deck and steering column */
+  ctx.fillStyle = '#868e96';
+  rr(-26, -13, 54, 8, 4); ctx.fill();
+  ctx.strokeStyle = '#868e96'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(24, -11); ctx.lineTo(36, -82); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(28, -82); ctx.lineTo(46, -82); ctx.stroke();
+  /* wheels */
+  drawWheel(-22, -5, 9, spin);
+  drawWheel(30, -5, 9, spin);
+  /* Romchyk: kicking leg + standing leg */
+  ctx.strokeStyle = '#33415c'; ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(-2, -36); ctx.lineTo(-14 + kick, -4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4, -36); ctx.lineTo(6, -12); ctx.stroke();
+  /* body leaning to the handlebar */
+  ctx.fillStyle = '#3a86ff';
+  rr(-10, -70, 24, 36, 10); ctx.fill();
+  ctx.strokeStyle = '#3a86ff'; ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(10, -62); ctx.lineTo(34, -78); ctx.stroke();
+  ctx.fillStyle = '#ffd6b1';
+  ctx.beginPath(); ctx.arc(35, -79, 4, 0, Math.PI * 2); ctx.fill();
+  /* head with red helmet */
+  ctx.fillStyle = '#ffd6b1';
+  ctx.beginPath(); ctx.arc(2, -84, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e63946';
+  ctx.beginPath(); ctx.arc(2, -87, 14, Math.PI * 0.95, Math.PI * 2.08); ctx.fill();
+  ctx.fillStyle = '#1d3557';
+  ctx.beginPath(); ctx.arc(7, -83, 2.4, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a4502c'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(6, -78, 4.5, 0.2, Math.PI - 0.6); ctx.stroke();
+  ctx.restore();
+}
+
+/* START arch the vehicle drives through after the countdown; the banner
+ * carries this mission's icon so the start matches the story */
+function drawStartGate() {
+  const x = game.gateX;
+  if (x < -170 || x > worldW + 400) return;
+  const topY = groundY - 215;
+  for (const sx of [-110, 110]) {
+    ctx.fillStyle = '#e63946';
+    rr(x + sx - 7, topY, 14, 215, 5); ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (let yy = topY + 16; yy < groundY - 22; yy += 38) {
+      rr(x + sx - 7, yy, 14, 15, 3); ctx.fill();
+    }
+  }
+  ctx.fillStyle = '#fff';
+  rr(x - 132, topY - 10, 264, 50, 10); ctx.fill();
+  ctx.strokeStyle = '#ffb703'; ctx.lineWidth = 4; ctx.stroke();
+  /* checkered ribbon */
+  for (let i = 0; i < 22; i++) {
+    ctx.fillStyle = i % 2 ? '#212529' : '#f8f9fa';
+    ctx.fillRect(x - 132 + i * 12, topY + 32, 12, 8);
+  }
+  ctx.fillStyle = '#2b2d42';
+  ctx.font = '900 27px ui-rounded, system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('СТАРТ', x, topY + 11);
+  /* the mission icon hangs from the banner */
+  ctx.font = '36px system-ui';
+  ctx.fillText(game.story && game.story.e ? game.story.e : '🚩', x, topY + 66);
+}
+
+/* FINISH arch behind the celebrating family, with the same story icon */
+function drawFinishGate() {
+  const f = Math.min(1, worldW / 700);
+  const cx = worldW / 2;
+  const topY = groundY - 250;
+  for (const side of [-1, 1]) {
+    const px2 = cx + side * 330 * f;
+    ctx.fillStyle = '#e63946';
+    rr(px2 - 8, topY, 16, 250, 6); ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (let yy = topY + 18; yy < groundY - 24; yy += 42) {
+      rr(px2 - 8, yy, 16, 17, 4); ctx.fill();
+    }
+    /* balloon cluster on each pole */
+    const cols = ['#ff8fab', '#ffd670', '#7fc8f8'];
+    cols.forEach((c, i) => {
+      ctx.fillStyle = c;
+      const bx = px2 + (i - 1) * 16;
+      const by = topY - 22 - (i % 2) * 12 + Math.sin(game.time * 2 + i) * 3;
+      ctx.beginPath(); ctx.arc(bx, by, 12, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+  ctx.fillStyle = '#fff';
+  const bw = 560 * f;
+  rr(cx - bw / 2, topY - 12, bw, 52, 12); ctx.fill();
+  ctx.strokeStyle = '#ffb703'; ctx.lineWidth = 5; ctx.stroke();
+  const cells = Math.floor(bw / 14);
+  for (let i = 0; i < cells; i++) {
+    ctx.fillStyle = i % 2 ? '#212529' : '#f8f9fa';
+    ctx.fillRect(cx - bw / 2 + i * 14, topY + 31, 14, 9);
+  }
+  ctx.fillStyle = '#2b2d42';
+  ctx.font = '900 ' + Math.round(30 * Math.max(f, 0.8)) + 'px ui-rounded, system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const icon = game.story && game.story.e ? game.story.e : '🏁';
+  ctx.fillText(icon + ' ФІНІШ ' + icon, cx, topY + 10);
+}
+
 function drawWheel(x, y, r, spin) {
   ctx.fillStyle = '#22223b';
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
@@ -2649,6 +2956,10 @@ function drawVehicle(key, x, groundedY, flyY, squash, tilt, t) {
     case 'helicopter': drawHelicopter(x, flyY, tilt, t); break;
     case 'plane': drawPlane(x, flyY, tilt, t); break;
     case 'rocket': drawRocket(x, flyY, tilt, t); break;
+    case 'truck': drawTruck(x, groundedY, squash, t); break;
+    case 'van': drawVan(x, groundedY, squash, t); break;
+    case 'bus': drawBus(x, groundedY, squash, t); break;
+    case 'scooter': drawScooter(x, groundedY, squash, t); break;
   }
 }
 
@@ -3019,8 +3330,9 @@ function drawBanner() {
   /* shrink long prompts (colour hunts) so they always fit on screen */
   ctx.font = '900 64px ui-rounded, system-ui';
   const w = ctx.measureText(game.bannerText).width;
-  const size = w > worldW * 0.92 ? Math.max(30, Math.floor(64 * worldW * 0.92 / w)) : 64;
-  drawOutlinedText(game.bannerText, worldW / 2, worldH * 0.3, size, '#fff', '#1d6fb8', k);
+  /* upper band, out of the play area */
+  const size = w > worldW * 0.92 ? Math.max(26, Math.floor(48 * worldW * 0.92 / w)) : 48;
+  drawOutlinedText(game.bannerText, worldW / 2, Math.max(86, worldH * 0.16), size, '#fff', '#1d6fb8', k);
 }
 
 function drawCelebration() {
@@ -3045,6 +3357,8 @@ function drawCelebration() {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(String(i + 1), x0 + i * gapRow, yRow + 1);
   }
+
+  drawFinishGate();
 
   const cx = worldW / 2;
   /* Romchyk in the middle; baby Darynka sits and wiggles; one grandma
@@ -3120,6 +3434,7 @@ function frame(now) {
     drawFloats();
   } else if (game.state === 'play') {
     drawPuddles();
+    drawStartGate();
     drawObstacles();
     drawFlyby();
     drawTrail();
@@ -3157,6 +3472,7 @@ document.getElementById('playBtn').addEventListener('click', () => {
   game.story = pick(STORIES[STAGES[game.stage].key]);
   game.storySaid = false;
   game.mathGate = false;
+  game.gateX = Math.min(240, worldW * 0.3) + 340;
   Voice.preload();
   Voice.say(pick(UA.greetings), { force: true, emotion: 'warm' });
 });

@@ -50,6 +50,25 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Four wheels more, and proper start/finish (v10)
+
+- New vehicles (14 stages total): white semi truck hauling a sand heap
+  (quarry road with sand piles, sand-dust puffs, deep horn), black
+  delivery van (dusk city), blue city bus (a kid and a husky look out of
+  the windows, route board «3»), and a grey kick scooter with Romchyk
+  riding and kicking (park path, bell). Each gets 4 mission stories,
+  a honk word, and voiced stage lines (40 new clips, 540 total).
+- START arch with striped poles, checkered ribbon, and the mission's
+  story icon hanging from the banner — the vehicle drives through it
+  right after the countdown. The celebration scene now has a matching
+  FINISH arch with balloons on the poles and the same story icon, so
+  start and finish visually bookend each mission's story (56 stories
+  got icons).
+- Less text over the play area: the stage/hunt banner moved to the top
+  band and shrank, the number-track gate no longer shows a banner at all
+  (the cards speak for themselves), and the speech bubble moved to the
+  very bottom over the road.
+
 ## Letters, switches, and robustness (v9)
 
 - Letter hunt: «Знайди літеру А!» with three lettered balloons (10 curated
