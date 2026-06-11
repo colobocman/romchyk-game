@@ -95,35 +95,63 @@
 
 /* ---- All user-facing strings (game is localized to Ukrainian) ---- */
 const UA = {
-  greeting: 'Привіт, Ромчику! Поїхали кататися!',
+  greetings: [
+    'Привіт, Ромчику! Поїхали кататися!',
+    'Привіт, Ромчику! Машинки вже чекають на тебе!',
+    'Ромчику, вперед до пригод!',
+  ],
   praises: [
     'Молодець!', 'Супер!', 'Ура!', 'Так тримати!', 'Чудово!', 'Клас!',
     'Молодець, Ромчику!', 'Ромчик — чемпіон!', 'Вау, Ромчику!',
     'Ти найкращий гонщик!', 'Браво!', 'Фантастика!',
+    'Оце так!', 'Неймовірно!', 'Ти зірка, Ромчику!', 'Як здорово!',
+    'Точно в ціль!', 'Ромчик усе може!', 'Краса!', 'Які ми молодці!',
   ],
-  combos: ['Вау! Три підряд!', 'Супер швидко, Ромчику!', 'Як блискавка!'],
-  gift: 'Подарунок!',
+  combos: [
+    'Вау! Три підряд!', 'Супер швидко, Ромчику!', 'Як блискавка!',
+    'Оце так серія!', 'Раз, два, три — є!', 'Справжній майстер!',
+  ],
+  gift: ['Подарунок!', 'Сюрприз!', 'Ого, що там усередині?'],
   numbers: ['Один', 'Два', 'Три', 'Чотири', "П'ять", 'Шість', 'Сім', 'Вісім', "Дев'ять", 'Десять'],
   digits: ['один', 'два', 'три', 'чотири', "п'ять", 'шість', 'сім', 'вісім', "дев'ять"],
   huntPrompt: (w) => 'Знайди цифру ' + w + '!',
   huntBanner: (n) => 'Знайди цифру ' + n + '!',
   huntRight: (w) => 'Так! Це ' + w + '! Молодець, Ромчику!',
   huntWrong: (k, w) => 'Це ' + k + '. А де ' + w + '?',
+  colorPrompt: (acc) => 'Знайди ' + acc + ' кульку!',
+  colorRight: (name) => 'Так! Це ' + name + ' кулька! Молодець!',
+  colorWrong: (name, acc) => 'Це ' + name + ' кулька. А де ' + acc + '?',
+  countIntro: 'Порахуймо зірочки!',
+  countDone: 'Десять зірочок!',
   celebrate: 'Молодець, Ромчику!',
   celebrateSay: [
     'Молодець, Ромчику! Зібрав усі десять зірочок!',
     'Ура! Мама, тато і Даринка радіють!',
     'Шейла і Рей пишаються тобою!',
     'Десять зірочок! Ти чемпіон!',
+    'Уся сімʼя плескає в долоні!',
+    'Ти справжній герой, Ромчику!',
+    'Це було чудово!',
+    'Перемога! Обіймашки від мами!',
   ],
-  puddle: 'Ой, калюжа!',
-  dogJoin: ['Шейла біжить з тобою!', 'Рей біжить з тобою!'],
+  puddle: ['Ой, калюжа!', 'Бризки на всі боки!', 'Хлюп-хлюп!'],
+  dogJoin: [
+    ['Шейла біжить з тобою!', 'Шейла каже: гав-гав!', 'Сіра Шейла поруч!'],
+    ['Рей біжить з тобою!', 'Рей радіє і гавкає!', 'Білий Рей уже тут!'],
+  ],
   dogNames: ['Шейла!', 'Рей!'],
   countdownShow: ['1', '2', '3', 'Поїхали!'],
   countdownSay: ['Раз!', 'Два!', 'Три!', 'Поїхали!'],
-  turbo: ['Турбо!', 'Як блискавка!', 'Вжух! Швидко!'],
-  bump: ['Оп!', 'Ой-ой!', 'Ха-ха!'],
+  turbo: ['Турбо!', 'Як блискавка!', 'Вжух! Швидко!', 'Тримайся, Ромчику!', 'Повний вперед!'],
+  bump: ['Оп!', 'Ой-ой!', 'Ха-ха!', 'Бум!', 'Нічого страшного!', 'Їдемо далі!'],
+  encourage: [
+    'Лови зірочку, Ромчику!',
+    'Тисни на екран — і стрибай!',
+    'Дивись, скільки іграшок!',
+    'Спіймай зірочку!',
+  ],
   moo: 'Му-у!',
+  sheep: 'Бе-е! Овечка!',
   kid: 'Ромчик',
   honks: {
     car: 'Бі-бі!', moto: 'Врум!', drone: 'Вжух!', firetruck: 'Ту-ту!',
@@ -266,6 +294,12 @@ const SFX = {
   planeWhistle() { if (!actx) return; tone({ freq: 700, freqEnd: 1150, t: actx.currentTime, len: 0.3, gain: 0.12 }); },
   rumble()  { if (!actx) return; noise({ t: actx.currentTime, len: 0.45, gain: 0.22, fStart: 300, fEnd: 70 }); },
   boing()   { if (!actx) return; tone({ freq: 320, freqEnd: 90, t: actx.currentTime, len: 0.25, type: 'sine', gain: 0.2 }); },
+  baa() {
+    if (!actx) return; const t = actx.currentTime;
+    /* wobbly two-note bleat */
+    tone({ freq: 540, freqEnd: 400, t, len: 0.16, type: 'sawtooth', gain: 0.1 });
+    tone({ freq: 470, freqEnd: 360, t: t + 0.18, len: 0.22, type: 'sawtooth', gain: 0.12 });
+  },
   moo() {
     if (!actx) return; const t = actx.currentTime;
     tone({ freq: 200, freqEnd: 140, t, len: 0.38, type: 'sawtooth', gain: 0.13 });
@@ -364,28 +398,51 @@ const Music = {
 };
 
 /* ---------------- Ukrainian voice ---------------- */
+/* Emotion presets: tone of voice depends on what is happening. */
+const EMOTIONS = {
+  neutral:  { pitch: 1.15, rate: 1.0 },
+  excited:  { pitch: 1.32, rate: 1.06 },  // praise, turbo, combos
+  warm:     { pitch: 1.1,  rate: 0.95 },  // celebrations, greetings
+  calm:     { pitch: 1.05, rate: 0.9 },   // instructions (hunts)
+  fun:      { pitch: 1.42, rate: 1.0 },   // animal sounds, bumps, honks
+};
+
 const Voice = {
   v: null,
-  pick() {
+  pickVoice() {
     const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-    this.v = vs.find(x => /lesya/i.test(x.name)) || vs.find(x => x.lang && x.lang.toLowerCase().startsWith('uk')) || null;
+    const uk = vs.filter(x => (x.lang && x.lang.toLowerCase().startsWith('uk')) || /lesya/i.test(x.name));
+    /* prefer enhanced/premium builds of the voice when the device has them */
+    this.v = uk.find(x => /enhanced|premium|покращ/i.test(x.name + ' ' + (x.voiceURI || '')))
+      || uk.find(x => /lesya/i.test(x.name))
+      || uk[0] || null;
   },
-  say(text, { force = false } = {}) {
+  say(text, { force = false, emotion = 'neutral', queue = false } = {}) {
     bubble(text);
     if (muted || !window.speechSynthesis) return;
-    if (speechSynthesis.speaking && !force) return;
+    if (speechSynthesis.speaking && !force && !queue) return;
     if (force) speechSynthesis.cancel();
-    if (!this.v) this.pick();
+    if (!this.v) this.pickVoice();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'uk-UA';
     if (this.v) u.voice = this.v;
-    u.rate = 1.0; u.pitch = 1.15; u.volume = 1;
+    const e = EMOTIONS[emotion] || EMOTIONS.neutral;
+    u.rate = e.rate; u.pitch = e.pitch; u.volume = 1;
     speechSynthesis.speak(u);
   },
 };
 if (window.speechSynthesis) {
-  speechSynthesis.onvoiceschanged = () => Voice.pick();
-  Voice.pick();
+  speechSynthesis.onvoiceschanged = () => Voice.pickVoice();
+  Voice.pickVoice();
+}
+
+/* Pick a random phrase, never the same one twice in a row. */
+const lastPicks = new Map();
+function pick(pool) {
+  let i;
+  do { i = (Math.random() * pool.length) | 0; } while (pool.length > 1 && i === lastPicks.get(pool));
+  lastPicks.set(pool, i);
+  return pool[i];
 }
 
 const bubbleEl = document.getElementById('bubble');
@@ -420,6 +477,8 @@ const game = {
   countT: 0, countIdx: -2, // ready-set-go countdown
   turboT: 0,               // lightning-bolt turbo boost
   celebFwT: 0,             // fireworks timer during celebration
+  celebCount: 0, celebStepT: 0, celebPraised: false, // star counting ceremony
+  idleT: 0,                // seconds since the last collect (gentle nudge)
 };
 
 const player = {
@@ -499,7 +558,7 @@ function honk() {
     case 'rocket': SFX.rumble(); break;
     default: SFX.whoosh();
   }
-  if (Math.random() < 0.35) Voice.say(UA.honks[key]);
+  if (Math.random() < 0.35) Voice.say(UA.honks[key], { emotion: 'fun' });
 }
 function petDog() {
   SFX.bark();
@@ -519,6 +578,23 @@ function giggleSky() {
   spawnSparkles(worldW * 0.81, cfg.key === 'moto' ? 200 : 120, 12);
 }
 
+/* Sheep graze on the farm; tapping one makes it hop and bleat. */
+let sheepBounce = { k: -1, t: 0 };
+function getSheepPositions() {
+  const out = [];
+  const sp = 560;
+  let k = 0;
+  for (let x = -((game.scroll * 0.7) % sp) - 90; x < worldW + 80; x += sp, k++) {
+    out.push({ x, k });
+  }
+  return out;
+}
+function tapSheep(k) {
+  sheepBounce = { k, t: 0.8 };
+  SFX.baa();
+  Voice.say(UA.sheep, { emotion: 'fun' });
+}
+
 window.addEventListener('pointerdown', (e) => {
   if (game.state !== 'play') return;
   e.preventDefault();
@@ -530,6 +606,11 @@ window.addEventListener('pointerdown', (e) => {
   else {
     const sx = worldW * 0.81, sy = cfg.key === 'moto' ? 200 : 120;
     if (Math.hypot(wx - sx, wy - sy) < 85) giggleSky();
+    else if (cfg.decor === 'farm') {
+      for (const s of getSheepPositions()) {
+        if (Math.hypot(wx - s.x, wy - (groundY - 45)) < 70) { tapSheep(s.k); break; }
+      }
+    }
   }
   press();
 }, { passive: false });
@@ -627,26 +708,60 @@ function burstConfetti() {
   }
 }
 
-/* ---------------- Number hunt mini-game ---------------- */
+/* ---------------- Number & colour hunt mini-game ---------------- */
+/* Colour names: nominative + accusative, for grammatically correct prompts */
+const HUNT_COLORS = [
+  { name: 'червона',    acc: 'червону',    hex: '#e63946' },
+  { name: 'синя',       acc: 'синю',       hex: '#3a86ff' },
+  { name: 'зелена',     acc: 'зелену',     hex: '#52b788' },
+  { name: 'жовта',      acc: 'жовту',      hex: '#ffd000' },
+  { name: 'рожева',     acc: 'рожеву',     hex: '#ff8fab' },
+  { name: 'фіолетова',  acc: 'фіолетову',  hex: '#9d4edd' },
+];
+
 function startHunt() {
-  const target = 1 + ((Math.random() * 9) | 0);
-  const digitsSet = new Set([target]);
-  while (digitsSet.size < 3) digitsSet.add(1 + ((Math.random() * 9) | 0));
-  const arr = [...digitsSet].sort(() => Math.random() - 0.5);
+  /* first hunt of a stage teaches numbers, the second teaches colours */
+  const mode = game.huntCount === 1 ? 'number' : 'color';
   const fly = STAGES[game.stage].fly;
   const slots = fly
     ? [groundY - 130, groundY - 290, groundY - 430]
     : [groundY - 64, groundY - 140, groundY - 205];
-  hunt = {
-    target, t: 0, promptT: 9,
-    balloons: arr.map((d, i) => ({
-      x: worldW + 80 + i * 170, y: slots[i % 3], digit: d,
-      color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
-    })),
-  };
-  game.bannerT = 2.4;
-  game.bannerText = UA.huntBanner(target);
-  Voice.say(UA.huntPrompt(UA.digits[target - 1]), { force: true });
+  if (mode === 'number') {
+    const target = 1 + ((Math.random() * 9) | 0);
+    const digitsSet = new Set([target]);
+    while (digitsSet.size < 3) digitsSet.add(1 + ((Math.random() * 9) | 0));
+    const arr = [...digitsSet].sort(() => Math.random() - 0.5);
+    hunt = {
+      mode, target, t: 0, promptT: 9,
+      balloons: arr.map((d, i) => ({
+        x: worldW + 80 + i * 170, y: slots[i % 3], digit: d,
+        color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
+      })),
+    };
+    game.bannerT = 2.4;
+    game.bannerText = UA.huntBanner(target);
+    Voice.say(UA.huntPrompt(UA.digits[target - 1]), { force: true, emotion: 'calm' });
+  } else {
+    const idxSet = new Set();
+    while (idxSet.size < 3) idxSet.add((Math.random() * HUNT_COLORS.length) | 0);
+    const arr = [...idxSet].sort(() => Math.random() - 0.5);
+    const target = arr[(Math.random() * 3) | 0];
+    hunt = {
+      mode, target, t: 0, promptT: 9,
+      balloons: arr.map((ci, i) => ({
+        x: worldW + 80 + i * 170, y: slots[i % 3], colorIdx: ci,
+        color: HUNT_COLORS[ci].hex, pop: 0,
+      })),
+    };
+    game.bannerT = 2.4;
+    game.bannerText = UA.colorPrompt(HUNT_COLORS[target].acc);
+    Voice.say(UA.colorPrompt(HUNT_COLORS[target].acc), { force: true, emotion: 'calm' });
+  }
+}
+
+function huntSay() {
+  if (hunt.mode === 'number') Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
+  else Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
 }
 
 function updateHunt(dt, v, px, py) {
@@ -654,7 +769,7 @@ function updateHunt(dt, v, px, py) {
   hunt.promptT -= dt;
   if (hunt.promptT <= 0) {
     hunt.promptT = 9;
-    Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true });
+    huntSay();
   }
   if (hunt.t > 32) { hunt = null; return; }
   for (const b of hunt.balloons) {
@@ -666,19 +781,29 @@ function updateHunt(dt, v, px, py) {
     b.x -= v * 0.55 * dt;
     if (b.x < -60) b.x = worldW + 80;
     if (Math.hypot(px - b.x, py - b.y) < 72) {
-      if (b.digit === hunt.target) {
+      const right = hunt.mode === 'number' ? b.digit === hunt.target : b.colorIdx === hunt.target;
+      if (right) {
         SFX.combo(); SFX.collect();
         spawnSparkles(b.x, b.y, 20);
-        floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
-        Voice.say(UA.huntRight(UA.digits[b.digit - 1]), { force: true });
+        if (hunt.mode === 'number') {
+          floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
+          Voice.say(UA.huntRight(UA.digits[b.digit - 1]), { force: true, emotion: 'excited' });
+        } else {
+          Voice.say(UA.colorRight(HUNT_COLORS[b.colorIdx].name), { force: true, emotion: 'excited' });
+        }
         game.collected++;
+        game.idleT = 0;
         hunt = null;
         if (game.collected >= GOAL) startCelebration();
         return;
       }
       SFX.wrong();
       spawnPuff(b.x, b.y, b.color, 9);
-      Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true });
+      if (hunt.mode === 'number') {
+        Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
+      } else {
+        Voice.say(UA.colorWrong(HUNT_COLORS[b.colorIdx].name, HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
+      }
       b.pop = 1.4;
     }
   }
@@ -697,7 +822,7 @@ function spawnObstacle() {
 }
 
 function bumpVoice() {
-  if (Math.random() < 0.4) Voice.say(UA.bump[(Math.random() * UA.bump.length) | 0]);
+  if (Math.random() < 0.4) Voice.say(pick(UA.bump), { emotion: 'fun' });
 }
 
 function updateObstacles(dt, v, px, py) {
@@ -744,7 +869,7 @@ function updateObstacles(dt, v, px, py) {
         ob.hit = true;
         ob.vy = -720;
         SFX.moo();
-        if (Math.random() < 0.5) Voice.say(UA.moo);
+        if (Math.random() < 0.5) Voice.say(UA.moo, { emotion: 'fun' });
       }
     } else if (ob.type === 'cloud') {
       if (Math.hypot(ob.x - px, ob.y - py) < 62) {
@@ -785,19 +910,20 @@ function collect(it) {
     comboFired = true;
     SFX.combo();
     spawnSparkles(it.x, it.y, 18);
-    Voice.say(UA.combos[(Math.random() * UA.combos.length) | 0]);
+    Voice.say(pick(UA.combos), { emotion: 'excited' });
   }
 
+  game.idleT = 0;
   if (it.kind === '⚡') {
     /* turbo boost: faster world, wind streaks, rainbow trail */
     game.turboT = 4.2;
     SFX.turbo();
-    Voice.say(UA.turbo[(Math.random() * UA.turbo.length) | 0], { force: true });
+    Voice.say(pick(UA.turbo), { force: true, emotion: 'excited' });
   } else if (it.kind === '🦴') {
     game.dogToggle = 1 - game.dogToggle;
     dog = { breed: game.dogToggle, t: 8 };
     SFX.bark();
-    Voice.say(UA.dogJoin[game.dogToggle]);
+    Voice.say(pick(UA.dogJoin[game.dogToggle]), { emotion: 'warm' });
   } else if (it.kind === '🎁') {
     /* a gift bursts into two bonus stars right where it was */
     const starKind = STAGES[game.stage].night ? '🌟' : '⭐';
@@ -805,28 +931,32 @@ function collect(it) {
       items.push({ x: it.x + 50, y: Math.max(60, it.y + d), kind: starKind, r: 24, wob: Math.random() * 6 });
     }
     spawnSparkles(it.x, it.y, 16);
-    Voice.say(UA.gift);
+    Voice.say(pick(UA.gift), { emotion: 'fun' });
   } else if (!comboFired) {
     /* count out loud — number learning */
     game.praiseCounter++;
     const num = UA.numbers[game.collected - 1] || '';
     const txt = game.praiseCounter % 3 === 0
-      ? num + '! ' + UA.praises[(Math.random() * UA.praises.length) | 0]
+      ? num + '! ' + pick(UA.praises)
       : num + '!';
-    Voice.say(txt);
+    Voice.say(txt, { emotion: game.praiseCounter % 3 === 0 ? 'excited' : 'neutral' });
   }
   if (game.collected >= GOAL) startCelebration();
 }
 
 function startCelebration() {
   game.state = 'celebrate';
-  game.celebT = 6.8;
-  game.celebFwT = 0.5;
+  /* intro + count ten stars aloud + warm praise, with fireworks all along */
+  game.celebT = 10.5;
+  game.celebFwT = 1.2;
+  game.celebCount = 0;
+  game.celebStepT = 1.6;       // give the intro line a moment
+  game.celebPraised = false;
   hunt = null;
   obstacles.length = 0;
   burstConfetti();
   SFX.fanfare();
-  Voice.say(UA.celebrateSay[(Math.random() * UA.celebrateSay.length) | 0], { force: true });
+  Voice.say(UA.countIntro, { force: true, emotion: 'warm' });
   SFX.humStop();
 }
 
@@ -858,7 +988,7 @@ function nextStage() {
   player.y = cfg.fly ? groundY - 220 : 0;
   player.vy = 0; player.onGround = !cfg.fly;
   applyStageSound();
-  Voice.say(cfg.say, { force: true });
+  Voice.say(cfg.say, { force: true, emotion: 'excited' });
   game.state = 'play';
 }
 
@@ -866,6 +996,22 @@ function update(dt) {
   game.time += dt;
   if (game.state === 'celebrate') {
     game.celebT -= dt;
+    /* count the ten stars aloud, one by one */
+    if (game.celebCount < GOAL) {
+      game.celebStepT -= dt;
+      if (game.celebStepT <= 0) {
+        game.celebCount++;
+        game.celebStepT = 0.55;
+        SFX.collect();
+        Voice.say(UA.numbers[game.celebCount - 1] + '!', { queue: true });
+        const f = Math.min(1, worldW / 660);
+        const x0 = worldW / 2 - 4.5 * 52 * f;
+        floats.push({ x: x0 + (game.celebCount - 1) * 52 * f, y: worldH * 0.36 - 50, text: String(game.celebCount), age: 0.9, maxAge: 0.9 });
+      }
+    } else if (!game.celebPraised) {
+      game.celebPraised = true;
+      Voice.say(UA.countDone + ' ' + pick(UA.celebrateSay), { queue: true, emotion: 'warm' });
+    }
     /* fireworks pop during the whole celebration */
     game.celebFwT -= dt;
     if (game.celebFwT <= 0) {
@@ -897,7 +1043,7 @@ function update(dt) {
     const idx = game.countT > 3.6 ? -1 : game.countT > 2.6 ? 0 : game.countT > 1.6 ? 1 : game.countT > 0.6 ? 2 : 3;
     if (idx !== game.countIdx && idx >= 0) {
       game.countIdx = idx;
-      Voice.say(UA.countdownSay[idx], { force: idx === 3 });
+      Voice.say(UA.countdownSay[idx], { force: idx === 3, emotion: idx === 3 ? 'excited' : 'neutral' });
       if (idx === 3) SFX.combo(); else SFX.collect();
     }
     if (!cfg.fly && !player.onGround) {
@@ -935,6 +1081,13 @@ function update(dt) {
   }
   if (game.bannerT > 0) game.bannerT -= dt;
   if (game.comboT > 0) { game.comboT -= dt; if (game.comboT <= 0) game.comboCount = 0; }
+
+  /* gentle nudge if nothing was collected for a while */
+  game.idleT += dt;
+  if (game.idleT > 14) {
+    game.idleT = 0;
+    Voice.say(pick(UA.encourage), { emotion: 'warm' });
+  }
 
   /* player physics */
   player.x = cfg.key === 'train' ? Math.min(320, worldW * 0.45) : Math.min(240, worldW * 0.3);
@@ -1049,7 +1202,7 @@ function update(dt) {
     if (player.onGround && game.slowT <= 0 && Math.abs(p.x - px) < p.w / 2) {
       game.slowT = 1.0;
       SFX.splash();
-      Voice.say(UA.puddle);
+      Voice.say(pick(UA.puddle), { emotion: 'fun' });
       spawnPuff(px, groundY - 8, '#7fb7e8', 14);
     }
     if (p.x < -120) puddles.splice(i, 1);
@@ -1205,6 +1358,8 @@ function drawBackground() {
     for (let x = -((game.scroll * 0.7) % ss) - 40; x < worldW + 80; x += ss) drawSunflower(x, groundY - 14);
     const hs2 = 760;
     for (let x = -((game.scroll * 0.7) % hs2) - 200; x < worldW + 200; x += hs2) drawHay(x, groundY - 14);
+    if (sheepBounce.t > 0) sheepBounce.t -= 1 / 60;
+    for (const s of getSheepPositions()) drawSheep(s.x, groundY - 14, s.k === sheepBounce.k ? Math.max(0, sheepBounce.t) : 0);
   } else if (cfg.decor === 'mountains') {
     const ps = 300;
     for (let x = -((game.scroll * 0.7) % ps) - 60; x < worldW + 100; x += ps) drawPine(x, groundY - 14);
@@ -1510,6 +1665,40 @@ function drawSunflower(x, baseY) {
   }
   ctx.fillStyle = '#6f4518';
   ctx.beginPath(); ctx.arc(x, baseY - 50, 8, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawSheep(x, baseY, bounceT) {
+  const hop = bounceT > 0 ? Math.sin(bounceT / 0.8 * Math.PI) * 26 : 0;
+  ctx.save();
+  ctx.translate(x, baseY - hop);
+  /* legs */
+  ctx.strokeStyle = '#5e503f'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  for (const lx of [-16, -6, 8, 18]) {
+    ctx.beginPath(); ctx.moveTo(lx, -16); ctx.lineTo(lx, 0); ctx.stroke();
+  }
+  /* fluffy body */
+  ctx.fillStyle = '#f7f4ec';
+  ctx.beginPath();
+  ctx.arc(-14, -28, 15, 0, Math.PI * 2);
+  ctx.arc(2, -34, 17, 0, Math.PI * 2);
+  ctx.arc(17, -27, 14, 0, Math.PI * 2);
+  ctx.arc(2, -22, 15, 0, Math.PI * 2);
+  ctx.fill();
+  /* head */
+  ctx.fillStyle = '#6f5b4c';
+  ctx.beginPath(); ctx.ellipse(-26, -38, 10, 8.5, -0.2, 0, Math.PI * 2); ctx.fill();
+  /* ear + wool tuft */
+  ctx.beginPath(); ctx.ellipse(-20, -45, 5, 3, 0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f7f4ec';
+  ctx.beginPath(); ctx.arc(-20, -48, 6, 0, Math.PI * 2); ctx.fill();
+  /* eye + smile */
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-29, -40, 3.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2b2d42';
+  ctx.beginPath(); ctx.arc(-30, -40, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#3d2f24'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(-29, -34, 3.5, 0.3, Math.PI - 0.5); ctx.stroke();
+  ctx.restore();
 }
 
 function drawHay(x, baseY) {
@@ -2094,7 +2283,7 @@ function drawBalloons() {
   if (!hunt) return;
   for (const b of hunt.balloons) {
     if (b.pop > 0) continue;
-    const bobY = b.y + Math.sin(game.time * 2.4 + b.digit) * 6;
+    const bobY = b.y + Math.sin(game.time * 2.4 + (b.digit || b.colorIdx || 0)) * 6;
     /* string */
     ctx.strokeStyle = 'rgba(90,70,50,.6)'; ctx.lineWidth = 2;
     ctx.beginPath();
@@ -2109,13 +2298,15 @@ function drawBalloons() {
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.5)';
     ctx.beginPath(); ctx.ellipse(b.x - 12, bobY - 12, 7, 11, 0.6, 0, Math.PI * 2); ctx.fill();
-    /* digit disc */
-    ctx.fillStyle = 'rgba(255,255,255,.92)';
-    ctx.beginPath(); ctx.arc(b.x, bobY, 21, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#2b2d42';
-    ctx.font = '900 30px system-ui';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(b.digit), b.x, bobY + 1);
+    /* digit disc — number hunts only; colour hunts keep the balloon plain */
+    if (hunt.mode === 'number') {
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
+      ctx.beginPath(); ctx.arc(b.x, bobY, 21, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2b2d42';
+      ctx.font = '900 30px system-ui';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(b.digit), b.x, bobY + 1);
+    }
   }
 }
 
@@ -2128,9 +2319,15 @@ function drawHuntCard() {
   ctx.font = '26px system-ui';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('🔎', 42, 104);
-  ctx.fillStyle = '#2b2d42';
-  ctx.font = '900 36px system-ui';
-  ctx.fillText(String(hunt.target), 86, 105);
+  if (hunt.mode === 'number') {
+    ctx.fillStyle = '#2b2d42';
+    ctx.font = '900 36px system-ui';
+    ctx.fillText(String(hunt.target), 86, 105);
+  } else {
+    ctx.fillStyle = HUNT_COLORS[hunt.target].hex;
+    ctx.beginPath(); ctx.arc(86, 103, 17, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
 }
 
 function drawFloats() {
@@ -2348,12 +2545,35 @@ function drawOutlinedText(text, x, y, size, fill, stroke, pulse) {
 function drawBanner() {
   if (game.bannerT <= 0) return;
   const k = Math.min(1, (2.2 - game.bannerT) * 4);
-  drawOutlinedText(game.bannerText, worldW / 2, worldH * 0.3, 64, '#fff', '#1d6fb8', k);
+  /* shrink long prompts (colour hunts) so they always fit on screen */
+  ctx.font = '900 64px ui-rounded, system-ui';
+  const w = ctx.measureText(game.bannerText).width;
+  const size = w > worldW * 0.92 ? Math.max(30, Math.floor(64 * worldW * 0.92 / w)) : 64;
+  drawOutlinedText(game.bannerText, worldW / 2, worldH * 0.3, size, '#fff', '#1d6fb8', k);
 }
 
 function drawCelebration() {
   const t = game.time;
   drawOutlinedText(UA.celebrate, worldW / 2, worldH * 0.22, 56, '#ffd000', '#c46a00', 1 + Math.sin(t * 5) * 0.04);
+
+  /* big star row counted one by one (number learning) */
+  const fRow = Math.min(1, worldW / 660);
+  const gapRow = 52 * fRow;
+  const x0 = worldW / 2 - 4.5 * gapRow;
+  const yRow = worldH * 0.36;
+  for (let i = 0; i < GOAL; i++) {
+    const lit = i < game.celebCount;
+    const isNew = i === game.celebCount - 1;
+    const popK = isNew ? 1 + Math.max(0, game.celebStepT - 0.25) * 1.4 : 1;
+    star(x0 + i * gapRow, yRow, (lit ? 22 : 16) * fRow * popK);
+    ctx.fillStyle = lit ? '#ffd000' : 'rgba(255,255,255,.4)';
+    ctx.fill();
+    if (lit) { ctx.strokeStyle = '#e09f00'; ctx.lineWidth = 3; ctx.stroke(); }
+    ctx.fillStyle = lit ? '#7a4f01' : 'rgba(255,255,255,.85)';
+    ctx.font = '900 ' + Math.round(15 * fRow) + 'px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(i + 1), x0 + i * gapRow, yRow + 1);
+  }
 
   const cx = worldW / 2;
   /* Romchyk himself celebrates in the middle, bouncing highest */
@@ -2449,7 +2669,7 @@ document.getElementById('playBtn').addEventListener('click', () => {
   game.stageT = 0;
   game.huntCount = 0;
   game.countT = 4.6; game.countIdx = -2;
-  Voice.say(UA.greeting, { force: true });
+  Voice.say(pick(UA.greetings), { force: true, emotion: 'warm' });
 });
 
 muteBtn.addEventListener('pointerdown', (e) => e.stopPropagation());

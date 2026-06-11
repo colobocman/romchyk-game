@@ -50,6 +50,27 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Voice and learning upgrades (v5)
+
+- Emotion presets for speech: praise and turbo are excited (higher pitch,
+  faster), celebrations and greetings are warm, hunt instructions are calm
+  and slow, animal sounds and bumps are playful. Implemented as per-utterance
+  pitch/rate presets.
+- Phrase pools roughly doubled (20 praises, 8 celebration lines, variants
+  for puddles, gifts, bumps, greetings, per-dog lines); a no-repeat picker
+  guarantees the same phrase never plays twice in a row. Voice selection
+  prefers enhanced/premium uk-UA voices when installed.
+- Star-counting ceremony: every celebration opens with «Порахуймо зірочки!»
+  and counts all ten stars aloud one by one over a big numbered star row
+  (queued utterances), ending with «Десять зірочок!» plus warm praise.
+- Colour hunt: the second hunt of each stage asks for a colour instead of a
+  digit («Знайди червону кульку!», grammatically correct accusative forms);
+  plain coloured balloons, wrong picks name the actual colour.
+- Tappable sheep graze on the farm stage — they hop and bleat («Бе-е!
+  Овечка!»).
+- Gentle idle nudge: if nothing is collected for ~14 s, a warm encouragement
+  line plays («Лови зірочку, Ромчику!»).
+
 ## Pace and entertainment (v4)
 
 - Ready-set-go countdown opens every stage: big numerals 1-2-3 with voice
