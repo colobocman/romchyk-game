@@ -1,0 +1,282 @@
+"""Pre-generate every game phrase as an mp3 with a neural Ukrainian voice.
+
+Uses Microsoft Edge TTS (uk-UA-PolinaNeural) — vastly more human than the
+browser's built-in synthesizer. Each phrase becomes audio/v_<djb2>.mp3,
+where the hash is computed over the phrase text without combining-acute
+stress marks (the neural model handles stress natively). The game computes
+the same hash at runtime to find the clip, falling back to speechSynthesis
+for anything missing.
+
+Run from the repo root:  python3 tools/generate_voice.py
+"""
+from __future__ import annotations
+
+import asyncio
+import pathlib
+import sys
+
+import edge_tts
+
+VOICE = "uk-UA-PolinaNeural"
+OUT = pathlib.Path(__file__).resolve().parent.parent / "audio"
+CONCURRENCY = 8
+
+# Prosody per phrase category, baked into the audio (mirrors EMOTIONS in JS).
+PROSODY = {
+    "neutral": {"rate": "+4%", "pitch": "+8Hz"},
+    "excited": {"rate": "+14%", "pitch": "+22Hz"},
+    "warm": {"rate": "-2%", "pitch": "+10Hz"},
+    "calm": {"rate": "-10%", "pitch": "+4Hz"},
+    "fun": {"rate": "+8%", "pitch": "+30Hz"},
+}
+
+CALL_NAMES = ["Ромчику", "Ромасику", "Ромцю", "сонечко", "чемпіоне", "друже"]
+NUMBERS = ["Один", "Два", "Три", "Чотири", "П'ять", "Шість", "Сім", "Вісім", "Дев'ять", "Десять"]
+DIGITS = ["один", "два", "три", "чотири", "п'ять", "шість", "сім", "вісім", "дев'ять"]
+COLORS = [
+    ("червона", "червону"), ("синя", "синю"), ("зелена", "зелену"),
+    ("жовта", "жовту"), ("рожева", "рожеву"), ("фіолетова", "фіолетову"),
+]
+
+PRAISES = [
+    "Молодець!", "Супер!", "Ура!", "Так тримати!", "Чудово!", "Клас!",
+    "Молодець, {n}!", "Ти справжній чемпіон!", "Вау, {n}!",
+    "Ти найкращий гонщик!", "Браво!", "Фантастика!",
+    "Оце так!", "Неймовірно!", "Ти зірка, {n}!", "Як здорово!",
+    "Точно в ціль!", "Ромчик усе може!", "Краса!", "Які ми молодці!",
+    "Гарно ловиш, {n}!", "Просто супер!",
+]
+COMBOS = [
+    "Вау! Три підряд!", "Супер швидко, {n}!", "Як блискавка!",
+    "Оце так серія!", "Раз, два, три — є!", "Справжній майстер!",
+]
+GREETINGS = [
+    "Привіт, Ромчику! Поїхали кататися!",
+    "Привіт, Ромчику! Машинки вже чекають на тебе!",
+    "Ромчику, вперед до пригод!",
+    "Сідай зручніше, {n}! Рушаємо!",
+]
+CELEBRATE_SAY = [
+    "Молодець, {n}! Зібрав усі десять зірочок!",
+    "Ура! Мама, тато і маленька Даринка радіють!",
+    "Шейла і Рей пишаються тобою!",
+    "Десять зірочок! Ти чемпіон!",
+    "Уся сімʼя плескає в долоні!",
+    "Ти справжній герой, {n}!",
+    "Це було чудово!",
+    "Перемога! Обіймашки від мами!",
+    "Бабуся Галя передає тобі цілунок!",
+    "Бабуся Аня дуже тобою пишається!",
+]
+TURBO = ["Турбо!", "Як блискавка!", "Вжух! Швидко!", "Тримайся, {n}!", "Повний вперед!"]
+BUMP = ["Оп!", "Ой-ой!", "Ха-ха!", "Бум!", "Нічого страшного!", "Їдемо далі!"]
+ENCOURAGE = [
+    "Лови зірочку, {n}!",
+    "Тисни на екран — і стрибай!",
+    "Дивись, скільки іграшок!",
+    "Спіймай зірочку, {n}!",
+]
+GIFT = ["Подарунок!", "Сюрприз!", "Ого, що там усередині?"]
+PUDDLE = ["Ой, калюжа!", "Бризки на всі боки!", "Хлюп-хлюп!"]
+DOG_JOIN = [
+    ["Шейла біжить з тобою!", "Шейла каже: гав-гав!", "Сіра Шейла поруч!"],
+    ["Рей біжить з тобою!", "Рей радіє і гавкає!", "Білий Рей уже тут!"],
+    ["Тайсон біжить з тобою!", "Малий Тайсон поспішає!", "Тайсон гавкає: дзяв-дзяв!"],
+]
+DOG_NAMES = ["Шейла!", "Рей!", "Тайсон!"]
+COUNTDOWN = ["Раз!", "Два!", "Три!", "Поїхали!"]
+HONKS = [
+    "Бі-бі!", "Врум!", "Вжух!", "Ту-ту!", "Тр-тр-тр!", "Вжух-вжух!",
+    "Чух-чух!", "Віу-віу!", "Вжу-у-ух!", "Пуск!",
+]
+STAGE_SAYS = [
+    "Червона машинка! Бі-бі!", "Мотоцикл! Врум-врум!", "Дрон! Летимо високо!",
+    "Пожежна машина! Ту-ту-у!", "Трактор! Тр-тр-тр!", "Гелікоптер! Летимо над морем!",
+    "Поїзд! Чух-чух!", "Поліцейська машинка! Віу-віу!", "Літак! Вище хмар!",
+    "Ракета! Летимо у космос!",
+]
+STORIES = {
+    "car": [
+        ("Бабуся Галя спекла пиріжки! Відвеземо їх машинкою!", "Пиріжки доставлено! Бабуся Галя дякує!"),
+        ("Тайсон загубив свій мʼячик! Допоможи знайти!", "Мʼячик знайшовся! Тайсон стрибає від щастя!"),
+        ("Мама чекає на квіти! Поїхали по букет!", "Який букет! Мама усміхається!"),
+        ("Тато кличе на пікнік! Зберемо іграшки в дорогу!", "Усе зібрали! Пікнік буде веселим!"),
+    ],
+    "moto": [
+        ("Відвеземо листа бабусі Ані у її квартиру!", "Лист доставлено! Бабуся Аня радіє!"),
+        ("Поспішаємо до бабусі Галі на чай з варенням!", "Встигли! Чай з варенням — смакота!"),
+        ("Шейла хоче наввипередки! Хто швидше?", "Оце перегони! Шейла весело гавкає!"),
+        ("Тато просить привезти інструменти з гаража!", "Інструменти в тата! Майструємо разом!"),
+    ],
+    "drone": [
+        ("Дрон везе подарунок для маленької Даринки!", "Даринка агукає від радості!"),
+        ("Сфотографуємо веселку з висоти для мами!", "Яке фото! Мама повісить його на стіну!"),
+        ("Кульки розлетілися по небу! Зберімо їх!", "Усі кульки зібрано! Жодна не втекла!"),
+        ("Подивимось згори, де будинок бабусі Галі!", "Он він, великий будинок! Бабуся махає нам!"),
+    ],
+    "firetruck": [
+        ("Кошеня залізло на дерево! Їдемо рятувати!", "Кошеня врятовано! Воно муркоче: няв!"),
+        ("Поллємо квіти біля будинку бабусі Галі!", "Квіти политі! Як гарно пахнуть!"),
+        ("Сьогодні тренування пожежників! Покажемо клас!", "Тренування на відмінно! Ти справжній пожежник!"),
+        ("Тайсон десь сховався! Пожежна машина допоможе!", "Ось він, Тайсон! Сидів у будці!"),
+    ],
+    "tractor": [
+        ("Бабуся Галя просить зібрати врожай на городі!", "Врожай зібрано! Буде смачний борщ!"),
+        ("Овечки чекають на свіже сіно! Розвеземо!", "Овечки ситі та задоволені: бе-е!"),
+        ("Тайсон закопав кісточку в полі! Знайдімо її!", "Кісточка знайшлася! Тайсон гризе щасливий!"),
+        ("Привеземо гарбуза — найбільшого на полі!", "Оце гарбуз! Більший за Тайсона!"),
+    ],
+    "helicopter": [
+        ("Відвеземо бабусі Ані гостинці через море!", "Гостинці в бабусі Ані! Вона пригощає сусідів!"),
+        ("Кораблик заблукав у морі! Покажемо дорогу!", "Кораблик удома! Дякує нам гудком!"),
+        ("Полічимо дельфінів з висоти!", "Стільки дельфінів! Аж вистрибують з води!"),
+        ("Маяк погас! Доставимо нову лампочку!", "Маяк світить! Кораблі кажуть дякую!"),
+    ],
+    "train": [
+        ("Веземо іграшки дітям у гори!", "Іграшки приїхали! Діти плескають у долоні!"),
+        ("Поїзд везе яблука для бабусі Галі!", "Яблука на місці! Буде яблучний пиріг!"),
+        ("Шейла і Рей їдуть у вагончиках! Чух-чух!", "Приїхали! Хвостики махають на всі боки!"),
+        ("Корівка чекає на гостинці з міста!", "Корівка задоволена! Каже: му-у, дякую!"),
+    ],
+    "police": [
+        ("Ліхтарики в місті згасли! Посвітимо всім!", "Місто сяє вогниками! Всім видно дорогу!"),
+        ("Допоможемо їжачку перейти нічну дорогу!", "Їжачок удома! Дякує голочками!"),
+        ("Нічний патруль! Перевіримо, чи місто спить спокійно!", "Усе спокійно! Місто солодко спить!"),
+        ("Бабуся Аня забула ключі! Швидко веземо запасні!", "Ключі в бабусі Ані! Вона вже вдома, в теплі!"),
+    ],
+    "plane": [
+        ("Летимо в гості до бабусі Ані!", "Прилетіли! Бабуся Аня міцно обіймає!"),
+        ("Намалюємо в небі хмаринку-серце для мами!", "Серце в небі! Мама бачить його з двору!"),
+        ("Доженемо велику повітряну кулю!", "Догнали! Куля привіталася з нами!"),
+        ("Веземо Даринці мʼяку іграшку з далекого міста!", "Даринка обіймає іграшку і агукає!"),
+    ],
+    "rocket": [
+        ("Зірочка загубилась! Повернемо її на небо!", "Зірочка вдома! Вона підморгує нам!"),
+        ("Веземо місяцю теплу ковдру, щоб солодко спав!", "Місяць вкрився і спить! Тс-с-с!"),
+        ("Полічимо планети для маленької Даринки!", "Усі планети полічено! Розкажемо Даринці вдома!"),
+        ("Тато каже: на небі салют! Подивимось зблизька!", "Який салют! Аж зірки танцюють!"),
+    ],
+}
+
+
+def expand(phrases: list[str]) -> list[str]:
+    """Expand '{n}' templates into one phrase per address form."""
+    out: list[str] = []
+    for ph in phrases:
+        if "{n}" in ph:
+            out.extend(ph.replace("{n}", n) for n in CALL_NAMES)
+        else:
+            out.append(ph)
+    return out
+
+
+def all_phrases() -> list[tuple[str, str]]:
+    """Every (text, emotion) the game can ever speak."""
+    items: list[tuple[str, str]] = []
+
+    def add(texts: list[str], emotion: str) -> None:
+        items.extend((t, emotion) for t in expand(texts))
+
+    add(PRAISES, "excited")
+    add(COMBOS, "excited")
+    add(GREETINGS, "warm")
+    add(CELEBRATE_SAY, "warm")
+    add(TURBO, "excited")
+    add(BUMP, "fun")
+    add(ENCOURAGE, "warm")
+    add(GIFT, "fun")
+    add(PUDDLE, "fun")
+    for group in DOG_JOIN:
+        add(group, "warm")
+    add(DOG_NAMES, "fun")
+    add(COUNTDOWN[:3], "neutral")
+    add([COUNTDOWN[3]], "excited")
+    add(HONKS, "fun")
+    add(STAGE_SAYS, "excited")
+    add([n + "!" for n in NUMBERS], "neutral")
+    add(["Порахуймо зірочки!"], "warm")
+    add(["Десять зірочок!"], "excited")
+    add(["Му-у!", "Бе-е! Овечка!"], "fun")
+    for intro, payoff in (pair for pairs in STORIES.values() for pair in pairs):
+        add([intro], "warm")
+        add([payoff], "warm")
+    # number hunt
+    for w in DIGITS:
+        add([f"Знайди цифру {w}!"], "calm")
+        add([f"Так! Це {w}! Молодець!"], "excited")
+    for k in DIGITS:
+        for w in DIGITS:
+            if k != w:
+                add([f"Це {k}. А де {w}?"], "calm")
+    # colour hunt
+    for name, acc in COLORS:
+        add([f"Знайди {acc} кульку!"], "calm")
+        add([f"Так! Це {name} кулька! Молодець!"], "excited")
+    for name, _ in COLORS:
+        for _, acc in COLORS:
+            if acc != dict(COLORS)[name]:
+                add([f"Це {name} кулька. А де {acc}?"], "calm")
+    # math gate: a in 1..3, b in 1..2, distractors 1..6
+    for a in (1, 2, 3):
+        for b in (1, 2):
+            s = a + b
+            wa, wb, ws = DIGITS[a - 1], DIGITS[b - 1], DIGITS[s - 1]
+            add([f"Скільки буде {wa} плюс {wb}?"], "calm")
+            add([f"Так! {wa} плюс {wb} — буде {ws}! Розумничок!"], "excited")
+            for k in range(1, 7):
+                if k != s:
+                    add([f"Це {DIGITS[k - 1]}. А скільки буде {wa} плюс {wb}?"], "calm")
+
+    # dedupe, keep first emotion
+    seen: dict[str, str] = {}
+    for text, emo in items:
+        seen.setdefault(text, emo)
+    return list(seen.items())
+
+
+def djb2(text: str) -> str:
+    h = 5381
+    for byte in text.encode("utf-8"):
+        h = ((h * 33) ^ byte) & 0xFFFFFFFF
+    return format(h, "08x")
+
+
+async def synth(sem: asyncio.Semaphore, text: str, emotion: str) -> str | None:
+    key = djb2(text)
+    path = OUT / f"v_{key}.mp3"
+    if path.exists() and path.stat().st_size > 1000:
+        return None
+    pro = PROSODY[emotion]
+    async with sem:
+        for attempt in range(3):
+            try:
+                tts = edge_tts.Communicate(text, VOICE, rate=pro["rate"], pitch=pro["pitch"])
+                await tts.save(str(path))
+                if path.stat().st_size > 1000:
+                    return key
+            except Exception as exc:  # noqa: BLE001 — retry then report
+                if attempt == 2:
+                    print(f"FAILED {key} {text!r}: {exc}", file=sys.stderr)
+                await asyncio.sleep(1.5 * (attempt + 1))
+    return None
+
+
+async def main() -> None:
+    OUT.mkdir(exist_ok=True)
+    phrases = all_phrases()
+    keys = [djb2(t) for t, _ in phrases]
+    assert len(set(keys)) == len(keys), "djb2 collision — change hash"
+    print(f"{len(phrases)} unique phrases")
+    sem = asyncio.Semaphore(CONCURRENCY)
+    done = 0
+    for chunk_start in range(0, len(phrases), 50):
+        chunk = phrases[chunk_start:chunk_start + 50]
+        await asyncio.gather(*(synth(sem, t, e) for t, e in chunk))
+        done += len(chunk)
+        print(f"{done}/{len(phrases)}")
+    have = len(list(OUT.glob("v_*.mp3")))
+    print(f"audio files on disk: {have}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

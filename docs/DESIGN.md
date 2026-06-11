@@ -50,6 +50,22 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Neural voice (v7)
+
+- All 419 possible utterances are pre-generated as mp3 clips with the
+  uk-UA-PolinaNeural voice (Microsoft Edge TTS) by
+  `tools/generate_voice.py` — dramatically more human than the browser
+  synthesizer. Emotion prosody (rate/pitch per category) is baked into
+  each clip.
+- Clips live in `audio/v_<djb2>.mp3`; the game hashes the phrase text
+  (stress marks stripped) with the same djb2 at runtime, fetches lazily,
+  decodes through WebAudio, and caches. Music ducks while the voice talks.
+- Core clips (numbers, countdown) preload right after the PLAY tap.
+- The browser's speechSynthesis (Lesya) remains as an offline/missing-clip
+  fallback, still with stress marks and emotion presets.
+- Compound phrases were split into separate utterances (count + praise,
+  ten-stars + story payoff) so every line maps to one clip.
+
 ## Stories, family, and the math gate (v6)
 
 - Correct word stress: phrases carry combining-acute marks (Ро́мчик,
