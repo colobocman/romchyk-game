@@ -70,6 +70,22 @@
   }
   #playBtn:active { transform: translateY(6px); box-shadow: 0 2px 0 #c46a00; }
   @keyframes pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.06) } }
+  #opts { display: flex; gap: 6vw; }
+  .opt { display: flex; align-items: center; gap: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .opt-label { color: #fff; font-weight: 800; font-size: clamp(17px, 3.8vw, 26px); text-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  .switch {
+    width: 62px; height: 34px; border-radius: 17px;
+    background: rgba(255,255,255,.35); border: 3px solid #fff;
+    position: relative; transition: background .2s;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.12);
+  }
+  .switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 24px; height: 24px; border-radius: 50%; background: #fff;
+    transition: left .2s; box-shadow: 0 2px 4px rgba(0,0,0,.25);
+  }
+  .switch.on { background: #8ac926; }
+  .switch.on::after { left: 30px; }
   #title .credit { color: #fff; font-size: clamp(15px, 3.4vw, 22px); font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,.3); }
 </style>
 </head>
@@ -82,6 +98,10 @@
   <h1>Ромчик:<br>Великі Перегони</h1>
   <div class="emojis">🏎️&nbsp;🏍️&nbsp;🚁&nbsp;🚒&nbsp;🚜&nbsp;🚂&nbsp;🚓&nbsp;✈️&nbsp;🚀</div>
   <button id="playBtn">▶&nbsp;ГРАТИ</button>
+  <div id="opts">
+    <div class="opt" id="optNumbers"><span class="opt-label">🔢 Цифри</span><span class="switch" id="swNumbers"></span></div>
+    <div class="opt" id="optLetters"><span class="opt-label">🅰️ Літери</span><span class="switch" id="swLetters"></span></div>
+  </div>
   <div class="credit">Для Ромчика з любов'ю ❤️ Рахуємо зірочки разом: 1, 2, 3…<br>Шейла 🐺 та Рей 🐶 вже чекають!</div>
 </div>
 
@@ -127,6 +147,10 @@ const UA = {
   colorPrompt: (acc) => 'Знайди ' + acc + ' кульку!',
   colorRight: (name) => 'Так! Це ' + name + ' кулька! Молодець!',
   colorWrong: (name, acc) => 'Це ' + name + ' кулька. А де ' + acc + '?',
+  letterPrompt: (s) => 'Знайди літеру ' + s + '!',
+  letterBanner: (ch) => 'Знайди літеру ' + ch + '!',
+  letterRight: (s) => 'Так! Це літера ' + s + '! Молодець!',
+  letterWrong: (k, t) => 'Це літера ' + k + '. А де літера ' + t + '?',
   /* number-track gate: continue the count, or spot the lost number.
    * "Далі" and a visible gap in the row explain themselves — no need to
    * know the words "перед" or "після". */
@@ -506,7 +530,7 @@ function djb2(text) {
 const Voice = {
   v: null,
   buffers: new Map(),
-  q: [], playing: false, src: null, fallbackTimer: null,
+  q: [], playing: false, src: null, fallbackTimer: null, gen: 0,
   pickVoice() {
     const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
     const uk = vs.filter(x => (x.lang && x.lang.toLowerCase().startsWith('uk')) || /lesya/i.test(x.name));
@@ -528,6 +552,7 @@ const Voice = {
     this.pump();
   },
   stop() {
+    this.gen++;
     this.q.length = 0;
     if (this.src) { try { this.src.onended = null; this.src.stop(); } catch (e) { /* already stopped */ } this.src = null; }
     if (window.speechSynthesis) speechSynthesis.cancel();
@@ -541,20 +566,29 @@ const Voice = {
   },
   async load(key) {
     if (this.buffers.has(key)) return this.buffers.get(key);
-    let buf = null;
     try {
-      const res = await fetch('audio/v_' + key + '.mp3');
-      if (res.ok) buf = await actx.decodeAudioData(await res.arrayBuffer());
-    } catch (e) { /* offline or missing clip → fallback below */ }
-    this.buffers.set(key, buf);
-    return buf;
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch('audio/v_' + key + '.mp3', { signal: ctrl.signal });
+      clearTimeout(tm);
+      if (!res.ok) { this.buffers.set(key, null); return null; } // truly missing
+      const buf = await actx.decodeAudioData(await res.arrayBuffer());
+      this.buffers.set(key, buf);
+      /* cap decoded-audio memory; evicted clips simply re-fetch later */
+      if (this.buffers.size > 90) this.buffers.delete(this.buffers.keys().next().value);
+      return buf;
+    } catch (e) {
+      return null; // network hiccup — retry on the next phrase
+    }
   },
   async pump() {
     if (this.playing) return;
     const item = this.q.shift();
     if (!item) return;
     this.playing = true;
+    const myGen = this.gen;
     const buf = actx ? await this.load(djb2(item.clean)) : null;
+    if (myGen !== this.gen) return; // stopped while loading — newer speech owns the stage
     if (buf) {
       const src = actx.createBufferSource();
       src.buffer = buf;
@@ -608,6 +642,16 @@ function bubble(text) {
   bubbleTimer = setTimeout(() => bubbleEl.classList.remove('show'), 2300);
 }
 
+/* ---------------- Parent settings (title-screen switches) ---------------- */
+const settings = (() => {
+  const def = { numbers: true, letters: true };
+  try { return { ...def, ...JSON.parse(localStorage.getItem('romchyk-settings') || '{}') }; }
+  catch (e) { return def; }
+})();
+function saveSettings() {
+  try { localStorage.setItem('romchyk-settings', JSON.stringify(settings)); } catch (e) { /* private mode */ }
+}
+
 /* ---------------- Game state ---------------- */
 const GOAL = 10;
 
@@ -627,7 +671,8 @@ const game = {
   comboCount: 0, comboT: 0, trailT: 0,
   puffT: 0,                // exhaust / steam / flame particle timer
   sunSpinT: 0,             // sun spins fast after being tapped
-  huntCount: 0,            // number hunts started this stage (max 2)
+  huntCount: 0,            // hunts started this stage (max 2)
+  huntCycle: 0,            // rotates hunt types across the whole session
   countT: 0, countIdx: -2, // ready-set-go countdown
   turboT: 0,               // lightning-bolt turbo boost
   celebFwT: 0,             // fireworks timer during celebration
@@ -795,6 +840,8 @@ function pickItemKind() {
 }
 
 function spawnItems() {
+  /* nothing competes with a hunt or gate — the search is the only task */
+  if (hunt) return;
   /* one item at a time, and never a crowd — at most three on screen */
   if (items.length >= 3) return;
   const cfg = STAGES[game.stage];
@@ -855,13 +902,34 @@ const HUNT_COLORS = [
   { name: 'фіолетова',  acc: 'фіолетову',  hex: '#9d4edd' },
 ];
 
+/* Letters for the letter hunt: visually distinct, spoken by their names */
+const LETTERS = [
+  { ch: 'А', say: 'а' }, { ch: 'Б', say: 'бе' }, { ch: 'В', say: 'ве' },
+  { ch: 'Д', say: 'де' }, { ch: 'І', say: 'і' }, { ch: 'К', say: 'ка' },
+  { ch: 'М', say: 'ем' }, { ch: 'О', say: 'о' }, { ch: 'С', say: 'ес' },
+  { ch: 'Т', say: 'те' },
+];
+
+function huntPool() {
+  /* colours are always on; numbers and letters obey the title switches */
+  const pool = [];
+  if (settings.numbers) pool.push('number');
+  pool.push('color');
+  if (settings.letters) pool.push('letter');
+  return pool;
+}
+
 function startHunt() {
-  /* first hunt of a stage teaches numbers, the second teaches colours */
-  const mode = game.huntCount === 1 ? 'number' : 'color';
+  const pool = huntPool();
+  const mode = pool[game.huntCycle++ % pool.length];
+  /* a hunt is the only task on screen: no collectibles to chase */
+  items.length = 0;
   const fly = STAGES[game.stage].fly;
+  /* ground slots start above the driving line, so no balloon ever
+   * bumps into the vehicle by itself — answering requires a jump */
   const slots = fly
     ? [groundY - 130, groundY - 290, groundY - 430]
-    : [groundY - 64, groundY - 140, groundY - 205];
+    : [groundY - 130, groundY - 185, groundY - 240];
   if (mode === 'number') {
     const target = 1 + ((Math.random() * 9) | 0);
     const digitsSet = new Set([target]);
@@ -877,6 +945,21 @@ function startHunt() {
     game.bannerT = 2.4;
     game.bannerText = UA.huntBanner(target);
     Voice.say(UA.huntPrompt(UA.digits[target - 1]), { force: true, emotion: 'calm' });
+  } else if (mode === 'letter') {
+    const idxSet = new Set();
+    while (idxSet.size < 3) idxSet.add((Math.random() * LETTERS.length) | 0);
+    const arr = [...idxSet].sort(() => Math.random() - 0.5);
+    const target = arr[(Math.random() * 3) | 0];
+    hunt = {
+      mode, target, t: 0, promptT: 9,
+      balloons: arr.map((li, i) => ({
+        x: worldW + 80 + i * 170, y: slots[i % 3], letterIdx: li,
+        color: BALLOON_COLORS[(li + i) % BALLOON_COLORS.length], pop: 0,
+      })),
+    };
+    game.bannerT = 2.4;
+    game.bannerText = UA.letterBanner(LETTERS[target].ch);
+    Voice.say(UA.letterPrompt(LETTERS[target].say), { force: true, emotion: 'calm' });
   } else {
     const idxSet = new Set();
     while (idxSet.size < 3) idxSet.add((Math.random() * HUNT_COLORS.length) | 0);
@@ -898,6 +981,7 @@ function startHunt() {
 function huntSay() {
   if (hunt.mode === 'number') Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
   else if (hunt.mode === 'color') Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
+  else if (hunt.mode === 'letter') Voice.say(UA.letterPrompt(LETTERS[hunt.target].say), { force: true, emotion: 'calm' });
   else if (hunt.type === 'after') Voice.say(UA.seqAfterPrompt(UA.digits[hunt.seq[0] - 1], UA.digits[hunt.seq[1] - 1]), { force: true, emotion: 'calm' });
   else Voice.say(UA.seqMissingPrompt, { force: true, emotion: 'calm' });
 }
@@ -911,7 +995,8 @@ function maybeFinishStage() {
   if (game.collected < GOAL || game.state !== 'play' || game.mathGate) return;
   game.mathGate = true;
   hunt = null;
-  startSeqGate();
+  if (settings.numbers) startSeqGate();
+  else startCelebration();
 }
 
 function startSeqGate() {
@@ -920,13 +1005,19 @@ function startSeqGate() {
   const seq = [n, n + 1, n + 2];
   const slot = type === 'after' ? 2 : 1;            // which card is blank
   const target = seq[slot];
+  items.length = 0;
   const set = new Set([target]);
-  while (set.size < 3) set.add(1 + ((Math.random() * 6) | 0));
+  while (set.size < 3) {
+    const d = 1 + ((Math.random() * 6) | 0);
+    if (!seq.includes(d)) set.add(d);
+  }
   const arr = [...set].sort(() => Math.random() - 0.5);
   const fly = STAGES[game.stage].fly;
+  /* ground slots start above the driving line, so no balloon ever
+   * bumps into the vehicle by itself — answering requires a jump */
   const slots = fly
     ? [groundY - 130, groundY - 290, groundY - 430]
-    : [groundY - 64, groundY - 140, groundY - 205];
+    : [groundY - 130, groundY - 185, groundY - 240];
   hunt = {
     mode: 'seq', type, seq, slot, target, doneT: 0, t: 0, promptT: 9,
     balloons: arr.map((d, i) => ({
@@ -982,7 +1073,9 @@ function updateHunt(dt, v, px, py) {
     b.x -= v * 0.55 * dt;
     if (b.x < -60) b.x = worldW + 80;
     if (Math.hypot(px - b.x, py - b.y) < 72) {
-      const right = hunt.mode === 'color' ? b.colorIdx === hunt.target : b.digit === hunt.target;
+      const right = hunt.mode === 'color' ? b.colorIdx === hunt.target
+        : hunt.mode === 'letter' ? b.letterIdx === hunt.target
+        : b.digit === hunt.target;
       if (right) {
         SFX.combo(); SFX.collect();
         spawnSparkles(b.x, b.y, 20);
@@ -991,6 +1084,8 @@ function updateHunt(dt, v, px, py) {
           Voice.say(UA.huntRight(UA.digits[b.digit - 1]), { force: true, emotion: 'excited' });
         } else if (hunt.mode === 'color') {
           Voice.say(UA.colorRight(HUNT_COLORS[b.colorIdx].name), { force: true, emotion: 'excited' });
+        } else if (hunt.mode === 'letter') {
+          Voice.say(UA.letterRight(LETTERS[b.letterIdx].say), { force: true, emotion: 'excited' });
         } else {
           /* number-track gate solved */
           floats.push({ x: b.x, y: b.y - 10, text: String(b.digit), age: 1.2, maxAge: 1.2 });
@@ -1010,6 +1105,8 @@ function updateHunt(dt, v, px, py) {
         Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
       } else if (hunt.mode === 'color') {
         Voice.say(UA.colorWrong(HUNT_COLORS[b.colorIdx].name, HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
+      } else if (hunt.mode === 'letter') {
+        Voice.say(UA.letterWrong(LETTERS[b.letterIdx].say, LETTERS[hunt.target].say), { force: true, emotion: 'calm' });
       } else {
         Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
       }
@@ -1274,6 +1371,16 @@ function update(dt) {
       player.y = Math.max(Math.min(player.y + player.vy * dt, groundY - 36), 80);
     }
     player.squash += (1 - player.squash) * 8 * dt;
+    /* the world idles forward slowly so the screen never looks frozen */
+    game.scroll += game.speed * 0.22 * dt;
+    for (const c of clouds) {
+      c.x -= 9 * c.s * dt;
+      if (c.x < -200) { c.x = worldW + 200; c.y = 50 + Math.random() * 160; }
+    }
+    for (const bd of birds) {
+      bd.x -= 22 * bd.s * dt;
+      if (bd.x < -60) bd.x = worldW + 100 + Math.random() * 200;
+    }
     updateParticles(dt);
     return;
   }
@@ -1301,7 +1408,7 @@ function update(dt) {
   if (game.comboT > 0) { game.comboT -= dt; if (game.comboT <= 0) game.comboCount = 0; }
 
   /* gentle nudge if nothing was collected for a while */
-  game.idleT += dt;
+  if (hunt) game.idleT = 0; else game.idleT += dt;
   if (game.idleT > 14) {
     game.idleT = 0;
     Voice.say(pick(UA.encourage), { emotion: 'warm' });
@@ -1375,6 +1482,10 @@ function update(dt) {
     startHunt();
   }
   if (hunt) updateHunt(dt, v, player.x, pyNow);
+  /* safety net: if the finishing gate ever got lost, bring it back */
+  if (game.mathGate && !hunt && game.collected >= GOAL && game.state === 'play') {
+    if (settings.numbers) startSeqGate(); else startCelebration();
+  }
 
   /* funny obstacles */
   obstacleTimer -= dt;
@@ -2607,7 +2718,7 @@ function drawBalloons() {
   if (!hunt) return;
   for (const b of hunt.balloons) {
     if (b.pop > 0) continue;
-    const bobY = b.y + Math.sin(game.time * 2.4 + (b.digit || b.colorIdx || 0)) * 6;
+    const bobY = b.y + Math.sin(game.time * 2.4 + (b.digit || b.colorIdx || b.letterIdx || 0)) * 6;
     /* string */
     ctx.strokeStyle = 'rgba(90,70,50,.6)'; ctx.lineWidth = 2;
     ctx.beginPath();
@@ -2622,14 +2733,14 @@ function drawBalloons() {
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.5)';
     ctx.beginPath(); ctx.ellipse(b.x - 12, bobY - 12, 7, 11, 0.6, 0, Math.PI * 2); ctx.fill();
-    /* digit disc — number/math hunts; colour hunts keep the balloon plain */
+    /* digit/letter disc — colour hunts keep the balloon plain */
     if (hunt.mode !== 'color') {
       ctx.fillStyle = 'rgba(255,255,255,.92)';
       ctx.beginPath(); ctx.arc(b.x, bobY, 21, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#2b2d42';
       ctx.font = '900 30px system-ui';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(String(b.digit), b.x, bobY + 1);
+      ctx.fillText(hunt.mode === 'letter' ? LETTERS[b.letterIdx].ch : String(b.digit), b.x, bobY + 1);
     }
   }
 }
@@ -2648,6 +2759,10 @@ function drawHuntCard() {
     ctx.fillStyle = '#2b2d42';
     ctx.font = '900 36px system-ui';
     ctx.fillText(String(hunt.target), 86, 105);
+  } else if (hunt.mode === 'letter') {
+    ctx.fillStyle = '#2b2d42';
+    ctx.font = '900 34px system-ui';
+    ctx.fillText(LETTERS[hunt.target].ch, 86, 105);
   } else {
     ctx.fillStyle = HUNT_COLORS[hunt.target].hex;
     ctx.beginPath(); ctx.arc(86, 103, 17, 0, Math.PI * 2); ctx.fill();
@@ -3044,6 +3159,23 @@ document.getElementById('playBtn').addEventListener('click', () => {
   game.mathGate = false;
   Voice.preload();
   Voice.say(pick(UA.greetings), { force: true, emotion: 'warm' });
+});
+
+/* title-screen switches for the learning mechanics */
+const swNumbers = document.getElementById('swNumbers');
+const swLetters = document.getElementById('swLetters');
+function refreshSwitches() {
+  swNumbers.classList.toggle('on', settings.numbers);
+  swLetters.classList.toggle('on', settings.letters);
+}
+refreshSwitches();
+document.getElementById('optNumbers').addEventListener('click', () => {
+  settings.numbers = !settings.numbers;
+  saveSettings(); refreshSwitches();
+});
+document.getElementById('optLetters').addEventListener('click', () => {
+  settings.letters = !settings.letters;
+  saveSettings(); refreshSwitches();
 });
 
 muteBtn.addEventListener('pointerdown', (e) => e.stopPropagation());

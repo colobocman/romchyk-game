@@ -50,6 +50,28 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Letters, switches, and robustness (v9)
+
+- Letter hunt: «Знайди літеру А!» with three lettered balloons (10 curated
+  letters: А Б В Д І К М О С Т, each voiced by its name — бе, ве, де…).
+  Right answers and gentle corrections also voice the letters.
+- Title-screen switches «Цифри» and «Літери» (persisted in localStorage)
+  enable digit hunts + the number-track gate, and letter hunts. Colours
+  are always on. Hunt types rotate through the enabled pool.
+- Hunts are now truly the only task on screen: collectibles are cleared
+  when a hunt or gate starts and nothing spawns until it ends; obstacles
+  pause too; ground balloon slots were raised so no balloon ever bumps
+  into the vehicle by itself — answering always requires a jump.
+- Bug fixes from a full review: a generation token prevents a stale voice
+  clip from playing over a newer one after stop(); clip fetches time out
+  after 5 s and network failures are retried instead of being cached as
+  permanently missing; the decoded-audio cache is capped at 90 clips
+  (memory on older iPhones); the finishing gate has a watchdog that
+  restarts it if it ever gets lost; the idle encouragement line no longer
+  fires during hunts; number-track distractors can't equal a digit already
+  visible on the cards; and the countdown world idles forward slowly so
+  the screen never looks frozen.
+
 ## Calmer screen and the number track (v8)
 
 - Less clutter: collectibles spawn one at a time (no more arcs, zigzags,

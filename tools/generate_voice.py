@@ -216,6 +216,16 @@ def all_phrases() -> list[tuple[str, str]]:
         for _, acc in COLORS:
             if acc != dict(COLORS)[name]:
                 add([f"Це {name} кулька. А де {acc}?"], "calm")
+    # letter hunt: each letter is voiced by its name
+    letters = [("А", "а"), ("Б", "бе"), ("В", "ве"), ("Д", "де"), ("І", "і"),
+               ("К", "ка"), ("М", "ем"), ("О", "о"), ("С", "ес"), ("Т", "те")]
+    for _, say in letters:
+        add([f"Знайди літеру {say}!"], "calm")
+        add([f"Так! Це літера {say}! Молодець!"], "excited")
+    for _, ks in letters:
+        for _, ts in letters:
+            if ks != ts:
+                add([f"Це літера {ks}. А де літера {ts}?"], "calm")
     # number-track gate: rows of three start at 1..3
     add(["Ой! Цифра загубилась! Яка це цифра?"], "calm")
     for n in (1, 2, 3):
