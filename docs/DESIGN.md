@@ -50,6 +50,35 @@ Romchyk recognizes digits well, so numbers are woven into the core loop:
   digit and repeats the question; the balloon respawns. The hunt repeats its
   prompt every 9 s and quietly ends after ~30 s if ignored. No penalties.
 
+## Hardening and rhythm (v12)
+
+- **Critical fix:** the v11 progress panel was permanently visible — the
+  author rule `#progress { display: flex }` overrides the `hidden`
+  attribute (UA `[hidden] { display: none }` loses to any author display
+  rule), so the overlay covered the whole game from page load and the
+  game looked frozen on "the progress screen". Visibility is now driven
+  by `#progress:not([hidden]) { display: flex }` over a `display: none`
+  base.
+- Hunts ride the star rhythm instead of wall-clock: the first after the
+  3rd star, the second after the 7th, with a 6-second breather between —
+  both hunts now always happen each stage regardless of pace.
+- An unanswered hunt reveals its answer instead of silently vanishing:
+  wrong balloons pop away, the right one gets a golden halo and names
+  itself («Ось літера ем!», «Спробуємо ще раз!») — 30 new clips, 715
+  total. Nothing is recorded against the child for an unanswered hunt.
+- Only the first miss per hunt counts against the streak, so balloon
+  bumping while playing cannot tank the stats; the repeat prompt timer
+  resets after feedback so lines don't talk over each other.
+- The first prompt of a hunt queues behind the current voice line
+  (star counting finishes first); repeats still interrupt.
+- The number-track gate shows the completed row long enough for the row
+  reading — and the mastery cheer — to finish before the celebration
+  fanfare cuts the voice queue (4.2 s, 6.5 s on mastery).
+- Stage changes reset all spawn timers, so no leftover obstacle or puddle
+  fires the moment a new stage starts.
+- The progress panel gained a learning-speed glance: «За останній
+  тиждень вивчено: …» built from stored mastery timestamps.
+
 ## Adaptive learning (v11)
 
 - A learning tracker in localStorage records every digit, letter, and

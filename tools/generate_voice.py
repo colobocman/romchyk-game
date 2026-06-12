@@ -264,6 +264,14 @@ def all_phrases() -> list[tuple[str, str]]:
         for _, ts in letters:
             if ks != ts:
                 add([f"Це літера {ks}. А де літера {ts}?"], "calm")
+    # unanswered hunts reveal the answer instead of vanishing
+    for w in DIGITS:
+        add([f"Ось цифра {w}!"], "calm")
+    for _, say in letters:
+        add([f"Ось літера {say}!"], "calm")
+    for name, _ in COLORS:
+        add([f"Ось {name} кулька!"], "calm")
+    add(["Спробуємо ще раз!"], "warm")
     # number-track gate: rows can start anywhere up to 7 as digits master
     add(["Ой! Цифра загубилась! Яка це цифра?"], "calm")
     for n in (1, 2, 3, 4, 5, 6, 7):

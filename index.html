@@ -94,11 +94,14 @@
     padding: 10px 22px; border-radius: 30px;
     border: 2px solid rgba(255,255,255,.6);
   }
+  /* display:none is the base state — an author display rule would override
+   * the [hidden] attribute, so visibility is driven by :not([hidden]) */
   #progress {
     position: fixed; inset: 0; z-index: 40;
     background: rgba(20, 40, 70, .55);
-    display: flex; align-items: center; justify-content: center;
+    display: none; align-items: center; justify-content: center;
   }
+  #progress:not([hidden]) { display: flex; }
   #progress-card {
     background: #fff; color: #2b2d42;
     border-radius: 24px; border: 4px solid #ffb703;
@@ -201,6 +204,11 @@ const UA = {
   letterBanner: (ch) => 'Знайди літеру ' + ch + '!',
   letterRight: (s) => 'Так! Це літера ' + s + '! Молодець!',
   letterWrong: (k, t) => 'Це літера ' + k + '. А де літера ' + t + '?',
+  /* a hunt left unanswered reveals itself instead of vanishing */
+  huntReveal: (w) => 'Ось цифра ' + w + '!',
+  letterReveal: (s) => 'Ось літера ' + s + '!',
+  colorReveal: (name) => 'Ось ' + name + ' кулька!',
+  tryAgain: 'Спробуємо ще раз!',
   /* number-track gate: continue the count, or spot the lost number.
    * "Далі" and a visible gap in the row explain themselves — no need to
    * know the words "перед" or "після". */
@@ -765,6 +773,7 @@ const game = {
   sunSpinT: 0,             // sun spins fast after being tapped
   huntCount: 0,            // hunts started this stage (max 2)
   huntCycle: 0,            // rotates hunt types across the whole session
+  huntRestT: 0,            // breather between hunts so prompts never stack
   countT: 0, countIdx: -2, // ready-set-go countdown
   turboT: 0,               // lightning-bolt turbo boost
   celebFwT: 0,             // fireworks timer during celebration
@@ -1106,7 +1115,8 @@ function startHunt() {
     };
     game.bannerT = 2.4;
     game.bannerText = UA.huntBanner(target);
-    Voice.say(UA.huntPrompt(UA.digits[target - 1]), { force: true, emotion: 'calm' });
+    /* queued, not forced — the star that triggered the hunt finishes counting */
+    Voice.say(UA.huntPrompt(UA.digits[target - 1]), { queue: true, emotion: 'calm' });
   } else if (mode === 'letter') {
     const tChar = Learn.pickTarget('letter');
     const chars = [tChar, ...Learn.distractors('letter', tChar, 2)].sort(() => Math.random() - 0.5);
@@ -1121,7 +1131,7 @@ function startHunt() {
     };
     game.bannerT = 2.4;
     game.bannerText = UA.letterBanner(LETTERS[target].ch);
-    Voice.say(UA.letterPrompt(LETTERS[target].say), { force: true, emotion: 'calm' });
+    Voice.say(UA.letterPrompt(LETTERS[target].say), { queue: true, emotion: 'calm' });
   } else {
     const tName = Learn.pickTarget('color');
     const names = [tName, ...Learn.distractors('color', tName, 2)].sort(() => Math.random() - 0.5);
@@ -1136,16 +1146,18 @@ function startHunt() {
     };
     game.bannerT = 2.4;
     game.bannerText = UA.colorPrompt(HUNT_COLORS[target].acc);
-    Voice.say(UA.colorPrompt(HUNT_COLORS[target].acc), { force: true, emotion: 'calm' });
+    Voice.say(UA.colorPrompt(HUNT_COLORS[target].acc), { queue: true, emotion: 'calm' });
   }
 }
 
-function huntSay() {
-  if (hunt.mode === 'number') Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
-  else if (hunt.mode === 'color') Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
-  else if (hunt.mode === 'letter') Voice.say(UA.letterPrompt(LETTERS[hunt.target].say), { force: true, emotion: 'calm' });
-  else if (hunt.type === 'after') Voice.say(UA.seqAfterPrompt(UA.digits[hunt.seq[0] - 1], UA.digits[hunt.seq[1] - 1]), { force: true, emotion: 'calm' });
-  else Voice.say(UA.seqMissingPrompt, { force: true, emotion: 'calm' });
+function huntSay(soft = false) {
+  /* soft prompts queue behind whatever is playing (first ask); repeats force */
+  const o = soft ? { queue: true, emotion: 'calm' } : { force: true, emotion: 'calm' };
+  if (hunt.mode === 'number') Voice.say(UA.huntPrompt(UA.digits[hunt.target - 1]), o);
+  else if (hunt.mode === 'color') Voice.say(UA.colorPrompt(HUNT_COLORS[hunt.target].acc), o);
+  else if (hunt.mode === 'letter') Voice.say(UA.letterPrompt(LETTERS[hunt.target].say), o);
+  else if (hunt.type === 'after') Voice.say(UA.seqAfterPrompt(UA.digits[hunt.seq[0] - 1], UA.digits[hunt.seq[1] - 1]), o);
+  else Voice.say(UA.seqMissingPrompt, o);
 }
 
 /* Number-track gate: after ten stars, three big cards show a counting row
@@ -1185,32 +1197,61 @@ function startSeqGate() {
     ? [groundY - 130, groundY - 290, groundY - 430]
     : [groundY - 130, groundY - 185, groundY - 240];
   hunt = {
-    mode: 'seq', type, seq, slot, target, doneT: 0, t: 0, promptT: 9,
+    mode: 'seq', type, seq, slot, target, doneT: 0, doneMax: 0, t: 0, promptT: 9,
     balloons: arr.map((d, i) => ({
       x: worldW + 80 + i * 170, y: slots[i % 3], digit: d,
       color: BALLOON_COLORS[(d + i) % BALLOON_COLORS.length], pop: 0,
     })),
   };
-  huntSay();
+  huntSay(true);
 }
 
 function solveSeqGate(byAnswer) {
-  /* fill the blank card, read the whole row, then celebrate */
+  /* fill the blank card, read the whole row, then celebrate; the pause is
+   * long enough for the row reading (and a mastery cheer) to finish before
+   * the celebration intro force-cuts the voice queue */
   SFX.combo(); SFX.collect();
-  hunt.doneT = 2.2;
+  hunt.doneT = 4.2;
   hunt.balloons.length = 0;
   const w = UA.digits[hunt.target - 1];
   Voice.say(hunt.type === 'after' ? UA.seqAfterRight(w) : UA.seqMissingRight(w), { force: true, emotion: 'excited' });
   Voice.say(UA.seqRead(UA.digits[hunt.seq[0] - 1], UA.digits[hunt.seq[1] - 1], UA.digits[hunt.seq[2] - 1]), { queue: true, emotion: 'excited' });
   if (byAnswer) {
     const newly = Learn.record('digit', String(hunt.target), true);
-    if (newly) Voice.say(UA.digitDone(w), { queue: true, emotion: 'excited' });
+    if (newly) { Voice.say(UA.digitDone(w), { queue: true, emotion: 'excited' }); hunt.doneT = 6.5; }
   }
+  hunt.doneMax = hunt.doneT;
   game.idleT = 0;
+}
+
+/* If a hunt went unanswered, show the answer kindly instead of giving up:
+ * wrong balloons pop away, the right one sparkles and names itself. */
+function revealHunt() {
+  hunt.revealT = 2.6;
+  for (const b of hunt.balloons) {
+    const right = hunt.mode === 'color' ? b.colorIdx === hunt.target
+      : hunt.mode === 'letter' ? b.letterIdx === hunt.target
+      : b.digit === hunt.target;
+    if (!right) { b.pop = 99; continue; }
+    b.x = Math.max(120, Math.min(b.x, worldW - 120));
+    spawnSparkles(b.x, b.y, 18);
+  }
+  SFX.collect();
+  const say = hunt.mode === 'number' ? UA.huntReveal(UA.digits[hunt.target - 1])
+    : hunt.mode === 'letter' ? UA.letterReveal(LETTERS[hunt.target].say)
+    : UA.colorReveal(HUNT_COLORS[hunt.target].name);
+  Voice.say(say, { force: true, emotion: 'calm' });
+  Voice.say(UA.tryAgain, { queue: true, emotion: 'warm' });
 }
 
 function updateHunt(dt, v, px, py) {
   hunt.t += dt;
+  /* answer reveal: the right balloon stays put while it names itself */
+  if (hunt.revealT) {
+    hunt.revealT -= dt;
+    if (hunt.revealT <= 0) { hunt = null; game.huntRestT = 6; }
+    return;
+  }
   hunt.promptT -= dt;
   if (hunt.promptT <= 0) {
     hunt.promptT = 9;
@@ -1227,7 +1268,7 @@ function updateHunt(dt, v, px, py) {
       /* never block the party: reveal the answer and move on */
       solveSeqGate(false);
     } else {
-      hunt = null;
+      revealHunt();
     }
     return;
   }
@@ -1272,23 +1313,30 @@ function updateHunt(dt, v, px, py) {
         game.collected++;
         game.idleT = 0;
         hunt = null;
+        game.huntRestT = 6;
         maybeFinishStage();
         return;
       }
       SFX.wrong();
       spawnPuff(b.x, b.y, b.color, 9);
+      /* the wrong-line names the target, so don't re-prompt right away */
+      hunt.promptT = 9;
+      /* only the first miss per hunt counts against the streak — balloon
+       * bumping while playing should not tank the stats */
+      const rec = !hunt.failRec;
+      hunt.failRec = true;
       if (hunt.mode === 'number') {
         Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
-        Learn.record('digit', String(hunt.target), false);
+        if (rec) Learn.record('digit', String(hunt.target), false);
       } else if (hunt.mode === 'color') {
         Voice.say(UA.colorWrong(HUNT_COLORS[b.colorIdx].name, HUNT_COLORS[hunt.target].acc), { force: true, emotion: 'calm' });
-        Learn.record('color', HUNT_COLORS[hunt.target].name, false);
+        if (rec) Learn.record('color', HUNT_COLORS[hunt.target].name, false);
       } else if (hunt.mode === 'letter') {
         Voice.say(UA.letterWrong(LETTERS[b.letterIdx].say, LETTERS[hunt.target].say), { force: true, emotion: 'calm' });
-        Learn.record('letter', LETTERS[hunt.target].ch, false);
+        if (rec) Learn.record('letter', LETTERS[hunt.target].ch, false);
       } else {
         Voice.say(UA.huntWrong(UA.digits[b.digit - 1], UA.digits[hunt.target - 1]), { force: true, emotion: 'calm' });
-        Learn.record('digit', String(hunt.target), false);
+        if (rec) Learn.record('digit', String(hunt.target), false);
       }
       b.pop = 1.4;
     }
@@ -1475,6 +1523,9 @@ function nextStage() {
   obstacles.length = 0;
   wagons[0].y = 0; wagons[1].y = 0;
   hunt = null;
+  /* fresh spawn rhythm every stage — no leftover timers firing instantly */
+  itemTimer = 1.2; puddleTimer = 8; obstacleTimer = 9; flybyTimer = 12;
+  game.huntRestT = 0;
   player.y = cfg.fly ? groundY - 220 : 0;
   player.vy = 0; player.onGround = !cfg.fly;
   applyStageSound();
@@ -1665,8 +1716,11 @@ function update(dt) {
     if (trail[i].age <= 0) trail.splice(i, 1);
   }
 
-  /* number hunts: two per stage, at ~12 s and ~34 s */
-  if (!hunt && ((game.huntCount === 0 && game.stageT > 12) || (game.huntCount === 1 && game.stageT > 34))) {
+  /* learning hunts ride the star rhythm: after the 3rd and the 7th star,
+   * so both always happen regardless of pace, with a breather between */
+  if (game.huntRestT > 0) game.huntRestT -= dt;
+  if (!hunt && !game.mathGate && game.huntRestT <= 0 &&
+      ((game.huntCount === 0 && game.collected >= 3) || (game.huntCount === 1 && game.collected >= 7))) {
     game.huntCount++;
     startHunt();
   }
@@ -3191,6 +3245,11 @@ function drawBalloons() {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(hunt.mode === 'letter' ? LETTERS[b.letterIdx].ch : String(b.digit), b.x, bobY + 1);
     }
+    /* golden halo around the revealed answer */
+    if (hunt.revealT > 0) {
+      ctx.strokeStyle = '#ffd000'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(b.x, bobY, 45 + Math.sin(game.time * 6) * 4, 0, Math.PI * 2); ctx.stroke();
+    }
   }
 }
 
@@ -3232,7 +3291,7 @@ function drawSeqCards() {
     const isBlank = i === hunt.slot && hunt.doneT <= 0;
     const justFilled = i === hunt.slot && hunt.doneT > 0;
     const pulse = isBlank ? 1 + Math.sin(game.time * 5) * 0.06
-      : justFilled ? 1 + Math.max(0, hunt.doneT - 1.7) * 0.8 : 1;
+      : justFilled ? 1 + Math.max(0, hunt.doneT - (hunt.doneMax - 0.5)) * 0.8 : 1;
     ctx.save();
     ctx.translate(x + cw / 2, y0 + ch / 2);
     ctx.scale(pulse, pulse);
@@ -3643,6 +3702,17 @@ function renderProgress() {
   const acc = total ? Math.round(100 * ok / total) : 0;
   let h = '<div class="pstats">Відповідей: ' + total + (total ? ' · правильних: ' + acc + '%' : '') +
     '. Три правильні поспіль — і зʼявляється нова цифра чи літера.</div>';
+  /* what was mastered in the last 7 days — the learning-speed glance */
+  const week = [];
+  for (const kind of ['digit', 'letter', 'color']) {
+    for (const id of CURRICULUM[kind]) {
+      const st = Learn.stat(kind, id);
+      if (st.mast && st.done && Date.now() - st.done < 7 * 864e5) week.push(id);
+    }
+  }
+  if (week.length) {
+    h += '<div class="pstats">🌟 За останній тиждень вивчено: ' + week.join(', ') + '</div>';
+  }
   h += '<h3>🔢 Цифри (' + Learn.mastered('digit').length + '/' + CURRICULUM.digit.length + ')</h3>';
   h += CURRICULUM.digit.map((d) => chipHtml('digit', d, d)).join('');
   h += '<h3>🅰️ Літери (' + Learn.mastered('letter').length + '/' + CURRICULUM.letter.length + ')</h3>';
